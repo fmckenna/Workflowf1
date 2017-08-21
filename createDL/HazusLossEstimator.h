@@ -1,0 +1,53 @@
+#ifndef HAZUS_LOSS_ESTIMATOR_H
+#define HAZUS_LOSS_ESTIMATOR_H
+
+#include "Building.h"
+#include "FragilityCurve.h"
+#include "NormativeQty.h"
+#include "NormativeQtyStr.h"
+#include "Stat.h"
+#include "include/inifile.h"
+#include "include/csv.h"
+
+
+#include <map>
+#include <iostream>
+#include <fstream>
+
+using namespace std;
+
+class HazusLossEstimator
+{
+public:
+    HazusLossEstimator();
+    ~HazusLossEstimator();
+
+    int determineLOSS(const char *filenameBIM,
+                      const char *filenameEDP,
+                      const char *filenameLOSS);
+
+private:
+    Stat * stat;  //statistical functions
+
+    int nor=1000;   //number of realizations
+    bool calc_collapse=false;     // consider or not consider collapse effects
+    bool calc_residual=false;     //consider or not consider irreparable deformation described using residual drift
+    double beta_m=0.0;      //modeling_uncertainty
+    double beta_gm=0.0;     //ground_motion_uncertainty
+    map<string,FragilityCurve> fragilityLib;
+    map<string,NormativeQty>    normativeQtyLib;    //nonstructural and contents
+    map<string,NormativeQtyStr> normativeQtyStrLib; //structural
+
+    int _Init();
+    int _LoadNormativeQty();    //Load normativeQtyLib
+
+    void _AutoGenComponents(Building *bldg);
+    void _CalcBldgConseqScenario(Building *bldg);   //only one ground motion input
+    void _CalcComponentConseq(Component *cpn,int currRealization, double edp);
+    double _CalcConseq(double q, const FragilityCurve::ConsequenceCurve * curve); //simulate consequence, given a quantity and a consequence curve
+    void _GenRealizations(Building *bldg);
+    void _SimulateDS(Component *cpn, double edp);    //simulate damage state, given an edp
+};
+
+
+#endif // HAZUS_LOSS_ESTIMATOR_H
