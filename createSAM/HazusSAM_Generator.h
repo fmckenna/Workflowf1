@@ -1,3 +1,9 @@
+/*-----------------------------------------------
+This program uses MDOF shear models to simulate building seismic behaviors.
+For the theory details, please refer to the published paper:
+    Lu XZ, Han B, Hori M, Xiong C, Xu Z, A coarse-grained parallel approach for seismic damage simulations of urban areas based on refined models and GPU/CPU cooperative computing. Advances in Engineering Software, 2014, 70: 90-103.
+-----------------------------------------------*/
+
 #ifndef HAZUS_SAM_GENERATOR_H
 #define HAZUS_SAM_GENERATOR_H
 
