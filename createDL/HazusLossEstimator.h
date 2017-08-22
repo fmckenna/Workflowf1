@@ -1,3 +1,9 @@
+/*-----------------------------------------------
+This program uses FEMA P-58 method to simulate building seismic loss.
+For the theory details, please refer to the published paper:
+    Zeng X, Lu XZ, Yang TY, Xu Z. Application of the FEMA-P58 methodology for regional earthquake loss prediction. Natural Hazards, 2016, 83(1): 177-192.
+-----------------------------------------------*/
+
 #ifndef HAZUS_LOSS_ESTIMATOR_H
 #define HAZUS_LOSS_ESTIMATOR_H
 
