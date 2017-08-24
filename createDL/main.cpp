@@ -7,7 +7,7 @@ using namespace std;
 int main(int argc, char *argv[])
 {
   if (argc != 4) {
-    printf("ERROR: correct usage: determineLOSS fileNameBIM fileNameED filenameLOSS\n");
+    printf("ERROR: correct usage: determineLOSS fileNameBIM fileNameEDP filenameLOSS\n");
     exit(0);
   }
 
