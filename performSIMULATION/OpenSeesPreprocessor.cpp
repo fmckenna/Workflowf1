@@ -249,7 +249,7 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
 	    //	    std::ostringstream fileString(string(edpEventName)+string(type));
 	    string fileString;
 	    ostringstream temp;  //temp as in temporary
-	    temp << edpEventName << "." << type << "." << cline << "." << floor;
+	    temp << edpEventName << "." << type << "." << cline << "." << floor << ".out";
 	    fileString=temp.str(); 
 
 	    const char *fileName = fileString.c_str();
@@ -269,7 +269,7 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
 
 	    string fileString;
 	    ostringstream temp;  //temp as in temporary
-	    temp << edpEventName << "." << type << "." << cline << "." << floor1 << "." << floor2;
+	    temp << edpEventName << "." << type << "." << cline << "." << floor1 << "." << floor2 << ".out";
 	    fileString=temp.str(); 
 
 	    const char *fileName = fileString.c_str();
@@ -288,7 +288,7 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
 
 	    string fileString;
 	    ostringstream temp;  //temp as in temporary
-	    temp << edpEventName << "." << type << "." << cline << "." << floor;
+	    temp << edpEventName << "." << type << "." << cline << "." << floor << ".out";
 	    fileString=temp.str(); 
 
 	    const char *fileName = fileString.c_str();
