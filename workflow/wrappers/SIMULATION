@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e 
+set -v
+
+BID=$1
+
+chmod 755 mainPreprocessor mainPostprocessor OpenSees
+
+./mainPreprocessor $BID-BIM.json $BID-SAM.json $BID-EVENT.json $BID-EDP.json example.tcl
+./OpenSees example.tcl
+./mainPostprocessor $BID-BIM.json $BID-SAM.json $BID-EVENT.json $BID-EDP.json
+
+ls -l
+
+

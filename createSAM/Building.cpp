@@ -1,4 +1,4 @@
-#include "building.h"
+#include "Building.h"
 #include <jansson.h> // for Json
 
 Building::Building()

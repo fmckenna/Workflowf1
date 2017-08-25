@@ -6,7 +6,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
-#include "building.h"
+#include "Building.h"
 #include <cmath>
 using namespace std;
 

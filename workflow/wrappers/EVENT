@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+
+BID=$1
+
+chmod 755 createEVENT
+./createEVENT $BID-BIM.json $BID-EVENT.json
+

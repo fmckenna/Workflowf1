@@ -1,0 +1,212 @@
+#!/usr/bin/env python
+
+from Pegasus.DAX3 import *
+import sys
+import math
+import os
+import re
+import time
+import datetime
+import getpass
+
+# globals
+task_files = {}
+
+
+def add_task_files(dax, job, lfn, base_dir, recursed=False):
+    """
+    add a set of input files from the task-files dir to a task
+    """
+    global task_files
+
+    task_name = job.name
+
+    if task_name not in task_files:
+        task_files[task_name] = {}
+
+    pfn = base_dir + "/" + lfn
+
+    # do we have a directory or file?
+    if os.path.isdir(pfn):
+        # add all the entries
+        for entry in os.listdir(pfn):
+            new_lfn = lfn + "/" + entry
+            add_task_files(dax, job, new_lfn, base_dir, True)
+    else:
+        # file
+        if not os.path.isfile(pfn):
+            print "ERROR: Input file does not exist: " + pfn
+            sys.exit(1)
+        if lfn not in task_files[task_name]:
+            task_files[task_name][lfn] = File(lfn)
+            task_files[task_name][lfn].addPFN(PFN("file://" + pfn, "local"))
+            print " ... registering input lfn/pfn: " + lfn + "  (" + pfn + ")"
+            dax.addFile(task_files[task_name][lfn])
+
+
+pegasus_bin_dir = sys.argv[1]
+top_dir = sys.argv[2]
+run_id = sys.argv[3]
+run_dir = sys.argv[4]
+
+# Create a abstract dag
+dax = ADAG("designsafe")
+
+# email notificiations for when the state of the workflow changes
+email_cmd = pegasus_bin_dir + "/../share/pegasus/notification/email"
+if getpass.getuser() == "rynge":
+    email_cmd = email_cmd + " --to rynge@isi.edu"
+dax.invoke('all',  email_cmd)
+
+# Add executables to the DAX-level replica catalog
+for exe_name in os.listdir("./wrappers/"):
+    exe = Executable(name=exe_name, arch="x86_64", installed=False)
+    exe.addPFN(PFN("file://" + top_dir + "/workflow/wrappers/" + exe_name, "local"))
+    dax.addExecutable(exe)
+
+for building_id in range(1, 3 + 1):
+
+    print "Adding tasks for bulding %d ..." %(building_id)
+
+    ###################################################################
+    # createBIM
+
+    bim = Job(name="BIM")
+    add_task_files(dax, bim, "createBIM", top_dir + "/createBIM")
+    add_task_files(dax, bim, "exampleBIM.json", top_dir + "/createBIM")
+    bim.addArguments(str(building_id))
+
+    # inputs
+    for f in task_files["BIM"]:
+        bim.uses(f, link=Link.INPUT)
+
+    # outputs
+    bim_json = File("%d-BIM.json" %(building_id))
+    bim.uses(bim_json, link=Link.OUTPUT, transfer=True)
+
+    dax.addJob(bim)
+
+    ###################################################################
+    # createEvent
+
+    event = Job(name="EVENT")
+    add_task_files(dax, event, "createEVENT", top_dir + "/createEVENT")
+    add_task_files(dax, event, "HFmeta", top_dir + "/createEVENT")
+    add_task_files(dax, event, "S_31_24.json", top_dir + "/createEVENT")
+    event.addArguments(str(building_id))
+
+    # inputs
+    for f in task_files["EVENT"]:
+        event.uses(f, link=Link.INPUT)
+    event.uses(bim_json, link=Link.INPUT)
+
+    # outputs
+    event_json = File("%d-EVENT.json" %(building_id))
+    event.uses(event_json, link=Link.OUTPUT, transfer=True)
+
+    dax.addJob(event)
+    dax.depends(parent=bim, child=event)
+
+    ###################################################################
+    # createSAM
+
+    sam = Job(name="SAM")
+    add_task_files(dax, sam, "createSAM", top_dir + "/createSAM")
+    add_task_files(dax, sam, "data", top_dir + "/createSAM")
+    sam.addArguments(str(building_id))
+    
+    # inputs
+    for f in task_files["SAM"]:
+        sam.uses(f, link=Link.INPUT)
+    sam.uses(bim_json, link=Link.INPUT)
+    sam.uses(event_json, link=Link.INPUT)
+
+    # outputs
+    sam_json = File("%d-SAM.json" %(building_id))
+    sam.uses(sam_json, link=Link.OUTPUT, transfer=True)
+
+    dax.addJob(sam)
+    dax.depends(parent=bim, child=sam)
+    dax.depends(parent=event, child=sam)
+
+    ###################################################################
+    # createEDP
+
+    edp = Job(name="EDP")
+    add_task_files(dax, edp, "createEDP", top_dir + "/createEDP")
+    edp.addArguments(str(building_id))
+    
+    # inputs
+    for f in task_files["EDP"]:
+        edp.uses(f, link=Link.INPUT)
+    edp.uses(bim_json, link=Link.INPUT)
+    edp.uses(event_json, link=Link.INPUT)
+    edp.uses(sam_json, link=Link.INPUT)
+
+    # outputs
+    edp_json = File("%d-EDP.json" %(building_id))
+    edp.uses(edp_json, link=Link.OUTPUT, transfer=True)
+
+    dax.addJob(edp)
+    dax.depends(parent=bim, child=edp)
+    dax.depends(parent=event, child=edp)
+    dax.depends(parent=sam, child=edp)
+
+    ###################################################################
+    # performSIMULATION
+
+    simulation = Job(name="SIMULATION")
+    add_task_files(dax, simulation, "mainPreprocessor", top_dir + "/performSIMULATION")
+    add_task_files(dax, simulation, "mainPostprocessor", top_dir + "/performSIMULATION")
+    add_task_files(dax, simulation, "OpenSees", top_dir + "/workflow/task-files/SIMULATION")
+    simulation.addArguments(str(building_id))
+    
+    # inputs
+    for f in task_files["SIMULATION"]:
+        simulation.uses(f, link=Link.INPUT)
+    simulation.uses(bim_json, link=Link.INPUT)
+    simulation.uses(event_json, link=Link.INPUT)
+    simulation.uses(sam_json, link=Link.INPUT)
+    simulation.uses(edp_json, link=Link.INPUT)
+
+    # outputs
+    simulation_json = File("%d-SIMULATION.json" %(building_id))
+    simulation.uses(simulation_json, link=Link.OUTPUT, transfer=True)
+
+    dax.addJob(simulation)
+    dax.depends(parent=bim, child=simulation)
+    dax.depends(parent=event, child=simulation)
+    dax.depends(parent=sam, child=simulation)
+    dax.depends(parent=edp, child=simulation)
+
+    ###################################################################
+    # createDL
+
+    dl = Job(name="DL")
+    add_task_files(dax, dl, "createLOSS", top_dir + "/createDL")
+    add_task_files(dax, dl, "data", top_dir + "/createDL")
+    dl.addArguments(str(building_id))
+    
+    # inputs
+    for f in task_files["DL"]:
+        dl.uses(f, link=Link.INPUT)
+    dl.uses(bim_json, link=Link.INPUT)
+    dl.uses(edp_json, link=Link.INPUT)
+
+    # outputs
+    dl_json = File("%d-dl.json" %(building_id))
+    dl.uses(dl_json, link=Link.OUTPUT, transfer=True)
+
+    dax.addJob(dl)
+    dax.depends(parent=bim, child=dl)
+    dax.depends(parent=edp, child=dl)
+
+
+# Write the DAX to stdout
+f = open("dax.xml", "w")
+dax.writeXML(f)
+f.close()
+
+sys.exit(0)
+
+

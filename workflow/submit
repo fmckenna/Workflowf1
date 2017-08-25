@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -e
+
+TOP_DIR=`dirname $0`/..
+TOP_DIR=`cd $TOP_DIR && pwd`
+
+cd $TOP_DIR/workflow
+
+export RUN_ID=designsafe_`date +'%Y%m%d_%H%M%S'`
+
+export RUN_DIR=/local-scratch/$USER/workflows/$RUN_ID
+mkdir -p $RUN_DIR
+
+# generate the dax
+export PYTHONPATH=`pegasus-config --python`
+PEGASUS_BIN_DIR=`which pegasus-config`
+PEGASUS_BIN_DIR=`dirname $PEGASUS_BIN_DIR`
+./dax-generator $PEGASUS_BIN_DIR $TOP_DIR $RUN_ID $RUN_DIR
+mv dax.xml $RUN_DIR/
+
+echo
+echo "An outputs directory will be created within the base of the workflow directory."
+echo "Directory: $RUN_DIR/outputs"
+
+# plan and submit the  workflow
+echo
+pegasus-plan \
+    --conf pegasus.conf \
+    --relative-dir $RUN_ID \
+    --sites condorpool \
+    --staging-site staging \
+    --output-site local \
+    --cleanup leaf \
+    --dir $RUN_DIR/workflow \
+    --dax $RUN_DIR/dax.xml \
+    --submit
+
