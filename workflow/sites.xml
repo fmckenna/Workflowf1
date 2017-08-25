@@ -13,7 +13,7 @@
 
     <site  handle="staging" arch="x86_64">
         <directory type="shared-scratch" path="${RUN_DIR}/intermediate">
-            <file-server operation="all" url="scp://${USER}@workflow.isi.edu${RUN_DIR}/intermediate"/>
+            <file-server operation="all" url="scp://${USER}@${HOSTNAME}${RUN_DIR}/intermediate"/>
         </directory>
     </site>
 
