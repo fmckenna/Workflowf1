@@ -28,7 +28,7 @@ mainPostprocessor: $(OBJS_POST)
 	$(CXX) $(LDFLAGS) -o mainPostprocessor $(OBJS_POST) $(LDLIBS)
 
 clean:
-	$(RM) *~ \#* *.o
+	$(RM) *~ \#* *.o *.out
 
 distclean: clean
 	$(RM) mainPreprocessor mainPostprocessor

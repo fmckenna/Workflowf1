@@ -39,3 +39,13 @@ moc*
 
 # QT
 *.pro.user
+
+# EXAMPLE & EXE
+*.out
+createBIM
+createEVENT
+createEDP
+createSAM
+mainPreprocessor
+mainPostprocessor
+*.tcl

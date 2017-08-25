@@ -83,7 +83,7 @@ OpenSeesPostprocessor::processEDPs(){
 	  
 	  string fileString;
 	  ostringstream temp;  //temp as in temporary
-	  temp << edpEventName << "." << type << "." << cline << "." << floor;
+	  temp << edpEventName << "." << type << "." << cline << "." << floor << ".out";
 	  fileString=temp.str(); 
 
 	  const char *fileName = fileString.c_str();
@@ -109,7 +109,7 @@ OpenSeesPostprocessor::processEDPs(){
 	    string fileString;
 	    ostringstream temp;  //temp as in temporary
 	    temp << edpEventName << "." << type << "." << cline << "." 
-		 << floor1 << "." << floor2;
+		 << floor1 << "." << floor2 << ".out";
 	    fileString=temp.str(); 
 
 	    const char *fileName = fileString.c_str();
@@ -133,7 +133,7 @@ OpenSeesPostprocessor::processEDPs(){
 	  
 	  string fileString;
 	  ostringstream temp;  //temp as in temporary
-	  temp << edpEventName << "." << type << "." << cline << "." << floor;
+	  temp << edpEventName << "." << type << "." << cline << "." << floor << ".out";
 	  fileString=temp.str(); 
 
 	  const char *fileName = fileString.c_str();
