@@ -31,6 +31,13 @@ DISTFILES += \
     README.md \
     data/settings.ini
 
+unix {
 INCLUDEPATH += /usr/local/include
 
 LIBS += /usr/local/lib/libjansson.a
+}
+
+win32 {
+INCLUDEPATH += $$PWD\..\..\include
+LIBS += -L$$PWD\..\..\lib -llibjansson-4
+}

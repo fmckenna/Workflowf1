@@ -87,6 +87,7 @@ OpenSeesPreprocessor::createInputFile(const char *BIM,
   processEvents(tclFile);
 
   s->close();
+  return 0;
 }
 
 int 
@@ -111,14 +112,26 @@ OpenSeesPreprocessor::processMaterials(ofstream &s){
       double omega = json_real_value(json_object_get(material,"omega"));
       double eta_soft = json_real_value(json_object_get(material,"eta_soft"));
       double a_k = json_real_value(json_object_get(material,"a_k"));
-      s << "uniaxialMaterial Elastic " << tag << " " << K0 << "\n";
+      //s << "uniaxialMaterial Elastic " << tag << " " << K0 << "\n";
+      if (K0==0)
+          K0=1.0e-6;
+      if (eta==0)
+          eta=1.0e-6;
+      //uniaxialMaterial Hysteretic $matTag $s1p $e1p $s2p $e2p <$s3p $e3p>
+      //$s1n $e1n $s2n $e2n <$s3n $e3n> $pinchX $pinchY $damage1 $damage2 <$beta>
+      s << "uniaxialMaterial Hysteretic " << tag << " " << Sy << " " << Sy/K0
+        << " " << alpha*Sy << " " << Sy/K0+(alpha-1)*Sy/eta/K0
+        << " " << -beta*Sy << " " << -beta*Sy/K0 << " " << -beta*(alpha*Sy)
+        << " " << -(beta*Sy/K0 + beta*(alpha-1)*Sy/eta/K0) << " " << gamma
+        << " " << gamma << " " << 0.0 << " " << 0.0 << " " << a_k << "\n";
     }
   }
+  return 0;
 }
 
 int 
 OpenSeesPreprocessor::processSections(ofstream &s) {
-
+  return 0;
 }
 
 int 
@@ -169,6 +182,7 @@ OpenSeesPreprocessor::processNodes(ofstream &s){
 
     s << "\n";
   }
+  return 0;
 }
 
 int 
@@ -196,6 +210,7 @@ OpenSeesPreprocessor::processElements(ofstream &s){
       s << "-mat " << matTag << " -dir 1 \n";
     }
   }
+  return 0;
 }
 
 int 
@@ -306,6 +321,7 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
       s << "analyze " << numSteps << " " << dT << "\n";
     }
   }
+  return 0;
 }
 
 
@@ -344,6 +360,7 @@ OpenSeesPreprocessor::processEvent(ofstream &s,
     numPattern++;
 
   }  
+  return 0;
 }
 
 
