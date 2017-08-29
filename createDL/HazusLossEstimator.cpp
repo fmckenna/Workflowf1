@@ -29,10 +29,13 @@ int HazusLossEstimator::determineLOSS(const char *filenameBIM,
     _GenRealizations(bldg);
     _CalcBldgConseqScenario(bldg);
 
-    ofstream fout(filenameLOSS);
     double lossratio=bldg->totalLossMedian/bldg->replacementCost;
-    fout<<lossratio;
-    fout.close();
+    json_t *root = json_object();
+    json_t *dl = json_object();
+    json_object_set(dl,"LossRatio",json_real(lossratio));
+    json_object_set(root,"EconomicLoss",dl);
+    json_dump_file(root,filenameLOSS,0);
+    json_object_clear(root);
 
     delete bldg;
     return 0;
