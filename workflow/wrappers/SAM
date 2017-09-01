@@ -4,6 +4,10 @@ set -e
 
 BID=$1
 
+# make sure HazusData.txt is where we expect it
+mkdir -p data
+cp HazusData.txt data/
+
 chmod 755 createSAM
 ./createSAM $BID-BIM.json $BID-EVENT.json $BID-SAM.json
 

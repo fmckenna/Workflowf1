@@ -11,13 +11,10 @@
         <profile namespace="env" key="SSH_PRIVATE_KEY">${HOME}/.ssh/workflow</profile>
     </site>
 
-    <site  handle="staging" arch="x86_64">
+    <site  handle="condorpool" arch="x86_64" os="LINUX">
         <directory type="shared-scratch" path="${RUN_DIR}/intermediate">
             <file-server operation="all" url="scp://${USER}@${HOSTNAME}${RUN_DIR}/intermediate"/>
         </directory>
-    </site>
-
-    <site  handle="condorpool" arch="x86_64" os="LINUX">
         <profile namespace="pegasus" key="style" >condor</profile>
         <profile namespace="condor" key="universe" >vanilla</profile>
         <profile namespace="condor" key="request_memory" >1 GB</profile>

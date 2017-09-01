@@ -5,6 +5,10 @@ set -v
 
 BID=$1
 
+# expected output files - touch so that job does not go into
+# hold on failures
+touch $BID-SIMULATION.json
+
 chmod 755 mainPreprocessor mainPostprocessor OpenSees
 
 ./mainPreprocessor $BID-BIM.json $BID-SAM.json $BID-EVENT.json $BID-EDP.json example.tcl
