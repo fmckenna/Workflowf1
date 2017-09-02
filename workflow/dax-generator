@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 
 from Pegasus.DAX3 import *
-import sys
+
+import datetime
+import getpass
 import math
 import os
 import re
+import socket
+import sys
 import time
-import datetime
-import getpass
 
 # globals
 task_files = {}
@@ -39,7 +41,8 @@ def add_task_files(dax, job, lfn, base_dir, recursed=False):
             sys.exit(1)
         if lfn not in task_files[task_name]:
             task_files[task_name][lfn] = File(lfn)
-            task_files[task_name][lfn].addPFN(PFN("file://" + pfn, "local"))
+            task_files[task_name][lfn].addPFN(PFN("file://" + \
+                    "/" + pfn, "local"))
             print " ... registering input lfn/pfn: " + lfn + "  (" + pfn + ")"
             dax.addFile(task_files[task_name][lfn])
 
@@ -61,17 +64,23 @@ dax.invoke('all',  email_cmd)
 # Add executables to the DAX-level replica catalog
 for exe_name in os.listdir("./wrappers/"):
     exe = Executable(name=exe_name, arch="x86_64", installed=False)
-    exe.addPFN(PFN("file://" + top_dir + "/workflow/wrappers/" + exe_name, "local"))
+    exe.addPFN(PFN("file://" + \
+                   top_dir + "/workflow/wrappers/" + exe_name, "local"))
     dax.addExecutable(exe)
 
-for building_id in range(1, 3 + 1):
+for building_id in range(1, 1 + 1):
 
     print "Adding tasks for bulding %d ..." %(building_id)
+
+    # label based clustering - these tasks are so short we want to
+    # bundle a bunch of buildings together
+    label = "lbl%05d" %(building_id % 5)
 
     ###################################################################
     # createBIM
 
     bim = Job(name="BIM")
+    bim.profile(namespace="pegasus", key="label", value=label)
     add_task_files(dax, bim, "createBIM", top_dir + "/createBIM")
     add_task_files(dax, bim, "exampleBIM.json", top_dir + "/createBIM")
     bim.addArguments(str(building_id))
@@ -90,6 +99,7 @@ for building_id in range(1, 3 + 1):
     # createEvent
 
     event = Job(name="EVENT")
+    event.profile(namespace="pegasus", key="label", value=label)
     add_task_files(dax, event, "createEVENT", top_dir + "/createEVENT")
     add_task_files(dax, event, "HFmeta", top_dir + "/createEVENT")
     add_task_files(dax, event, "S_31_24.json", top_dir + "/createEVENT")
@@ -111,8 +121,9 @@ for building_id in range(1, 3 + 1):
     # createSAM
 
     sam = Job(name="SAM")
+    sam.profile(namespace="pegasus", key="label", value=label)
     add_task_files(dax, sam, "createSAM", top_dir + "/createSAM")
-    add_task_files(dax, sam, "data", top_dir + "/createSAM")
+    add_task_files(dax, sam, "HazusData.txt", top_dir + "/createSAM/data")
     sam.addArguments(str(building_id))
     
     # inputs
@@ -133,6 +144,7 @@ for building_id in range(1, 3 + 1):
     # createEDP
 
     edp = Job(name="EDP")
+    edp.profile(namespace="pegasus", key="label", value=label)
     add_task_files(dax, edp, "createEDP", top_dir + "/createEDP")
     edp.addArguments(str(building_id))
     
@@ -156,6 +168,7 @@ for building_id in range(1, 3 + 1):
     # performSIMULATION
 
     simulation = Job(name="SIMULATION")
+    simulation.profile(namespace="pegasus", key="label", value=label)
     add_task_files(dax, simulation, "mainPreprocessor", top_dir + "/performSIMULATION")
     add_task_files(dax, simulation, "mainPostprocessor", top_dir + "/performSIMULATION")
     add_task_files(dax, simulation, "OpenSees", top_dir + "/workflow/task-files/SIMULATION")
@@ -183,8 +196,9 @@ for building_id in range(1, 3 + 1):
     # createDL
 
     dl = Job(name="DL")
+    dl.profile(namespace="pegasus", key="label", value=label)
     add_task_files(dax, dl, "createLOSS", top_dir + "/createDL")
-    add_task_files(dax, dl, "data", top_dir + "/createDL")
+    add_task_files(dax, dl, "DL-data.tar.gz", top_dir + "/createDL")
     dl.addArguments(str(building_id))
     
     # inputs

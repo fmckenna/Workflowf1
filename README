@@ -26,30 +26,22 @@ should be.
 
 The Pegasus workflow can be found in the workflow/ directory. 
 
-The current version of the workflow is set up for rapid development using
-a local HTCondor pool. At a later date, the the workflow will be
-configured to execute at TACC.
-
-A workflow specific ssh key has to be created. This key is used for some
-of the data staging steps of the workflow:
-
-    $ ssh-keygen -t rsa -b 4096 -f ~/.ssh/workflow
-      (just hit enter when asked for a passphrase)
-          
-Authorize the key:
-
-    $ cat ~/.ssh/workflow.pub >>~/.ssh/authorized_keys
-
-You can test that the key was set up correctly by ssh to the local machine:
-
-    $ ssh -i ~/.ssh/workflow $HOSTNAME "echo Hello"
-
 Before submitting, please run `make` to make sure all the executables
 required by the workflow have been built.
 
-Submitting a workflow can be done by executing:
+The workflow is set up to execute in two different execution
+environments: local HTCondor pool or on TACC Stampede2. The former
+is good for small to medium sized runs as turnaround time is usually
+pretty good. Large workflows should be mapped to TACC Stampede2.
+
+Submitting a workflow for local HTCondor pool execution can be done
+by executing:
 
     ./submit
 
+Submitting to TACC Stampede2 can be done on the workflow.isi.edu host
+with the command:
+
+    ./submit stampede2
 
 

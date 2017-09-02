@@ -7,6 +7,19 @@ TOP_DIR=`cd $TOP_DIR && pwd`
 
 cd $TOP_DIR/workflow
 
+EXEC_SITE=$1
+if [ "x$EXEC_SITE" = "x" ]; then
+    EXEC_SITE="condorpool"
+fi
+if [ ! -e "sites/$EXEC_SITE/sites.xml" ]; then
+    echo "The $EXEC_SITE execution sites does not exist"
+    exit 1
+fi
+
+# tar up some of the inputs - this is to lower the load on 
+# filesystmes such as TACC's $SCRATCH
+(cd ../createDL && tar czf DL-data.tar.gz data)
+
 export RUN_ID=designsafe_`date +'%Y%m%d_%H%M%S'`
 
 export RUN_DIR=/local-scratch/$USER/workflows/$RUN_ID
@@ -23,16 +36,18 @@ echo
 echo "An outputs directory will be created within the base of the workflow directory."
 echo "Directory: $RUN_DIR/outputs"
 
+
 # plan and submit the  workflow
 echo
 pegasus-plan \
+    -Dpegasus.catalog.site.file=$TOP_DIR/workflow/sites/$EXEC_SITE/sites.xml \
     --conf pegasus.conf \
     --relative-dir $RUN_ID \
-    --sites condorpool \
-    --staging-site staging \
+    --sites $EXEC_SITE \
     --output-site local \
     --cleanup leaf \
     --dir $RUN_DIR/workflow \
     --dax $RUN_DIR/dax.xml \
     --submit
 
+#    --cluster label \

@@ -4,6 +4,15 @@ set -e
 
 BID=$1
 
+# expected output files - touch so that job does not go into
+# hold on failures
+touch $BID-DL.json
+
+# extract the data tarball unless it has already been done
+if [ ! -e data/ATCCurves ]; then
+    tar xzf DL-data.tar.gz
+fi
+
 chmod 755 createLOSS
 ./createLOSS $BID-BIM.json $BID-EDP.json $BID-DL.json
 
