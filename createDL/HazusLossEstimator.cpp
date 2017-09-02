@@ -32,8 +32,11 @@ int HazusLossEstimator::determineLOSS(const char *filenameBIM,
     double lossratio=bldg->totalLossMedian/bldg->replacementCost;
     json_t *root = json_object();
     json_t *dl = json_object();
-    json_object_set(dl,"LossRatio",json_real(lossratio));
+    json_object_set(dl,"MedianLossRatio",json_real(lossratio));
     json_object_set(root,"EconomicLoss",dl);
+    json_t *downtime = json_object();
+    json_object_set(downtime,"MedianDowntime",json_real(bldg->totalDowntimeMedian));
+    json_object_set(root,"Downtime",downtime);
     json_dump_file(root,filenameLOSS,0);
     json_object_clear(root);
 
@@ -72,6 +75,10 @@ int HazusLossEstimator::_Init()
     value_d=ini.getDoubleValue("parameters","ground_motion_uncertainty",ret);
     if(ret==0)
         beta_gm=value_d;
+
+    value_d=ini.getDoubleValue("parameters","max_worker_per_square_meter",ret);
+    if(ret==0 && value_d!=0)
+        max_worker_per_square_meter=value_d;
 
     return 0;
 }
@@ -204,6 +211,7 @@ int HazusLossEstimator::_LoadNormativeQty()
 void HazusLossEstimator::_GenRealizations(Building *bldg)
 {
     bldg->totalLoss.resize(nor);
+    bldg->totalDowntime.resize(nor);
     _AutoGenComponents(bldg);
 
     for(int i=0;i<=bldg->nStory;++i)
@@ -282,6 +290,7 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
         if(bldg->edp.IDR[0]<0)
         {
             bldg->totalLoss[currRealization]=bldg->replacementCost;
+            bldg->totalDowntime[currRealization]=bldg->replacementTime;
             continue;
         }
 
@@ -295,13 +304,16 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
         if (randNum<repairProb&&calc_residual) //simulation result: irreparable due to large residual deformation
         {
             bldg->totalLoss[currRealization]=bldg->replacementCost;
+            bldg->totalDowntime[currRealization]=bldg->replacementTime;
             continue;
         }
 
         //compute economic loss and downtime component-by-compunent
         bldg->totalLoss[currRealization]=0.0;
+        bldg->totalDowntime[currRealization]=0.0;
         for (int i=0;i<=bldg->nStory;++i)
         {
+            double currFloorDowntime=0.0;
             for(unsigned int j=0;j<bldg->components[i].size();++j)
             {
                 FragilityCurve *fc=&fragilityLib[bldg->components[i][j].ID];
@@ -331,15 +343,23 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
 
                 double currPGLoss=bldg->components[i][j].loss[currRealization];
                 bldg->totalLoss[currRealization]+=currPGLoss;
+                double currPGDowntime=bldg->components[i][j].downtime[currRealization];
+                currPGDowntime=currPGDowntime/(bldg->area*this->max_worker_per_square_meter);
+                currFloorDowntime+=currPGDowntime;
             }
+            if(bldg->totalDowntime[currRealization]<currFloorDowntime)
+                bldg->totalDowntime[currRealization]=currFloorDowntime;
         }
 
         //assumption: repair cost should not be higher than replacement value.
         if (bldg->totalLoss[currRealization]>bldg->replacementCost)
            bldg->totalLoss[currRealization]=bldg->replacementCost-10.0; //-10 to tell them apart
+        if (bldg->totalDowntime[currRealization]>bldg->replacementTime)
+           bldg->totalDowntime[currRealization]=bldg->replacementTime-1.0; //-1 to tell them apart
     }
 
     bldg->totalLossMedian=stat->getMedian(bldg->totalLoss);
+    bldg->totalDowntimeMedian=stat->getMedian(bldg->totalDowntime);
 }
 
 
@@ -347,6 +367,7 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
  {
     FragilityCurve * fc=&fragilityLib[cpn->ID];
     cpn->loss[currRealization]=0;
+    cpn->downtime[currRealization]=0;
     int nDS=0;    //number of damage states
     for(unsigned int i=0;i<fc->dsGroups.size();++i)
        nDS+=fc->dsGroups[i].dstates.size();
@@ -387,6 +408,8 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
             if(cpn->q_ds[dsFlag]>0.0)
             {
                 cpn->loss[currRealization]+=_CalcConseq(cpn->q_ds[dsFlag],&fc->dsGroups[i].dstates[j].cost);
+                //Here the unit of cpn->downtime is worker*day
+                cpn->downtime[currRealization]+=_CalcConseq(cpn->q_ds[dsFlag],&fc->dsGroups[i].dstates[j].time);
             }
             dsFlag++;
         }

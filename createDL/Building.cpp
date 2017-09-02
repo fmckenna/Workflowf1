@@ -86,6 +86,7 @@ void Building::readBIM(const char *path)
     json_t *yType = json_object_get(GI,"yBuilt");
     json_t *oType = json_object_get(GI,"occupancy");
     json_t *rType = json_object_get(GI,"replacementCost");
+    json_t *tType = json_object_get(GI,"replacementTime");
 
     const char *type = json_string_value(sType);
     string s(type);
@@ -100,6 +101,7 @@ void Building::readBIM(const char *path)
     nStory=json_integer_value(nType);
     area=json_number_value(aType);
     replacementCost=json_number_value(rType);
+    replacementTime=json_number_value(tType);
 }
 
 void Building::readEDP(const char *filenameEDP)

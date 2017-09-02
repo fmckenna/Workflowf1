@@ -40,6 +40,7 @@ private:
     bool calc_residual=false;     //consider or not consider irreparable deformation described using residual drift
     double beta_m=0.0;      //modeling_uncertainty
     double beta_gm=0.0;     //ground_motion_uncertainty
+    double max_worker_per_square_meter=0.010763;    //for downtime calculation
     map<string,FragilityCurve> fragilityLib;
     map<string,NormativeQty>    normativeQtyLib;    //nonstructural and contents
     map<string,NormativeQtyStr> normativeQtyStrLib; //structural
