@@ -34,12 +34,14 @@ public:
 
 private:
     Stat * stat;  //statistical functions
+    map<string,double> _qRepair;    //quantities of each kind of component to be repaired
 
     int nor=1000;   //number of realizations
     bool calc_collapse=false;     // consider or not consider collapse effects
     bool calc_residual=false;     //consider or not consider irreparable deformation described using residual drift
     double beta_m=0.0;      //modeling_uncertainty
     double beta_gm=0.0;     //ground_motion_uncertainty
+    double max_worker_per_square_meter=0.010763;    //for downtime calculation
     map<string,FragilityCurve> fragilityLib;
     map<string,NormativeQty>    normativeQtyLib;    //nonstructural and contents
     map<string,NormativeQtyStr> normativeQtyStrLib; //structural
@@ -49,8 +51,9 @@ private:
 
     void _AutoGenComponents(Building *bldg);
     void _CalcBldgConseqScenario(Building *bldg);   //only one ground motion input
-    void _CalcComponentConseq(Component *cpn,int currRealization, double edp);
-    double _CalcConseq(double q, const FragilityCurve::ConsequenceCurve * curve); //simulate consequence, given a quantity and a consequence curve
+    void _CalcComponentDamage(Component *cpn,int currRealization, double edp);
+    void _CalcComponentConseq(Component *cpn,int currRealization, double q_total);
+    double _SimulateConseq(double q,double q_total, const FragilityCurve::ConsequenceCurve * curve); //simulate consequence, given a quantity and a consequence curve
     void _GenRealizations(Building *bldg);
     void _SimulateDS(Component *cpn, double edp);    //simulate damage state, given an edp
 };
