@@ -311,9 +311,9 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
         //compute economic loss and downtime component-by-compunent
         bldg->totalLoss[currRealization]=0.0;
         bldg->totalDowntime[currRealization]=0.0;
+        _qRepair.clear();
         for (int i=0;i<=bldg->nStory;++i)
         {
-            double currFloorDowntime=0.0;
             for(unsigned int j=0;j<bldg->components[i].size();++j)
             {
                 FragilityCurve *fc=&fragilityLib[bldg->components[i][j].ID];
@@ -339,7 +339,17 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
                     break;
                 }
 
-                _CalcComponentConseq(&bldg->components[i][j],currRealization,edp);
+                _CalcComponentDamage(&bldg->components[i][j],currRealization,edp);
+            }
+        }
+
+        for (int i=0;i<=bldg->nStory;++i)
+        {
+            double currFloorDowntime=0.0;
+            for(unsigned int j=0;j<bldg->components[i].size();++j)
+            {
+                double q_total=_qRepair[bldg->components[i][j].ID];
+                _CalcComponentConseq(&bldg->components[i][j],currRealization,q_total);
 
                 double currPGLoss=bldg->components[i][j].loss[currRealization];
                 bldg->totalLoss[currRealization]+=currPGLoss;
@@ -363,7 +373,7 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
 }
 
 
- void HazusLossEstimator::_CalcComponentConseq(Component *cpn,int currRealization, double edp)
+ void HazusLossEstimator::_CalcComponentDamage(Component *cpn,int currRealization, double edp)
  {
     FragilityCurve * fc=&fragilityLib[cpn->ID];
     cpn->loss[currRealization]=0;
@@ -399,21 +409,8 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
         }
     }
 
-    //Calculate component economic loss and downtime
-    int dsFlag=0;
-    for(unsigned int i=0;i<fc->dsGroups.size();++i)
-    {
-        for(unsigned int j=0;j<fc->dsGroups[i].dstates.size();++j)
-        {
-            if(cpn->q_ds[dsFlag]>0.0)
-            {
-                cpn->loss[currRealization]+=_CalcConseq(cpn->q_ds[dsFlag],&fc->dsGroups[i].dstates[j].cost);
-                //Here the unit of cpn->downtime is worker*day
-                cpn->downtime[currRealization]+=_CalcConseq(cpn->q_ds[dsFlag],&fc->dsGroups[i].dstates[j].time);
-            }
-            dsFlag++;
-        }
-    }
+    for(unsigned int i=0;i<cpn->q_ds.size();i++)
+        _qRepair[cpn->ID]+=cpn->q_ds[i];
 
  }
 
@@ -488,43 +485,71 @@ void HazusLossEstimator::_SimulateDS(Component *cpn, double edp)
     }
 }
 
-double HazusLossEstimator::_CalcConseq(double q, const FragilityCurve::ConsequenceCurve * curve)
+void HazusLossEstimator::_CalcComponentConseq(Component *cpn,int currRealization, double q_total)
 {
-    double unitConseq=0.0;
+    FragilityCurve * fc=&fragilityLib[cpn->ID];
+    //Calculate component economic loss and downtime
+    int dsFlag=0;
+    for(unsigned int i=0;i<fc->dsGroups.size();++i)
+    {
+        for(unsigned int j=0;j<fc->dsGroups[i].dstates.size();++j)
+        {
+            if(cpn->q_ds[dsFlag]>0.0)
+            {
+                cpn->loss[currRealization]+=_SimulateConseq(cpn->q_ds[dsFlag],q_total,&fc->dsGroups[i].dstates[j].cost);
+                //Here the unit of cpn->downtime is worker*day
+                cpn->downtime[currRealization]+=_SimulateConseq(cpn->q_ds[dsFlag],q_total,&fc->dsGroups[i].dstates[j].time);
+            }
+            dsFlag++;
+        }
+    }
+}
+
+double HazusLossEstimator::_SimulateConseq(double q, double q_total,const FragilityCurve::ConsequenceCurve * curve)
+{
+    double conseq=0.0;
 
     double MinQty=curve->lowerQuantity;
     double MaxQty=curve->upperQuantity;
-    double MinAverage=curve->minAmount;
-    double MaxAverage=curve->maxAmount;
+    double MinAverage=curve->maxAmount; //a smaller quantity corresponds to a higher repair cost/time.
+    double MaxAverage=curve->minAmount;
     double MinDispersion=curve->uncertainty;
     double MaxDispersion=curve->uncertainty;
 
     double median=0.0,dispersion=0.0;
-    if (q<=MinQty)
+    if (q_total<=MinQty)
     {
         median=MinAverage;
         dispersion=MinDispersion;
     }
-    else if (q>=MaxQty)
+    else if (q_total>=MaxQty)
     {
         median=MaxAverage;
         dispersion=MaxDispersion;
     }
     else	//Linear interpolation
     {
-        median=MinAverage+(MaxAverage-MinAverage)*(q-MinQty)/(MaxQty-MinQty);
-        dispersion=MinDispersion+(MaxDispersion-MinDispersion)*(q-MinQty)/(MaxQty-MinQty);
+        median=MinAverage+(MaxAverage-MinAverage)*(q_total-MinQty)/(MaxQty-MinQty);
+        dispersion=MinDispersion+(MaxDispersion-MinDispersion)*(q_total-MinQty)/(MaxQty-MinQty);
     }
 
+
+    //reducing standard deviation
+    for(int i=0;i<q;i++){
+        if(curve->curve_type==FragilityCurve::lognormal)
+            conseq+=exp(stat->gaussrand(log(median),dispersion));
+        else	//normal distribution
+            conseq+=stat->gaussrand(median,dispersion*median);
+    }
     if(curve->curve_type==FragilityCurve::lognormal)
-        unitConseq=exp(stat->gaussrand(log(median),dispersion));
+        conseq+=exp(stat->gaussrand(log(median),dispersion))*(q-(int)q);
     else	//normal distribution
-        unitConseq=stat->gaussrand(median,dispersion*median);
+        conseq+=stat->gaussrand(median,dispersion*median)*(q-(int)q);
 
-    if (unitConseq<0)
+    if (conseq<0)
     {
-        unitConseq=0.0;
+        conseq=0.0;
     }
 
-    return unitConseq*q;
+    return conseq;
 }
