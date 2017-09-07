@@ -15,6 +15,7 @@ public:
     enum EDPType{story_drift_ratio,peak_floor_acceleration};
     enum CurveType{normal, lognormal};
     enum ComponentType{Str,NSD,NSA,Content};
+    enum Tag{none,red};
 
     struct ConsequenceCurve{
         double lowerQuantity;
@@ -29,6 +30,9 @@ public:
         double  percent;
         ConsequenceCurve cost;
         ConsequenceCurve time;
+        Tag tagState;
+        double redTagMedian;
+        double redTagBeta;
     };
 
 

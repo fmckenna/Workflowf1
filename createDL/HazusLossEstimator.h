@@ -34,7 +34,11 @@ public:
 
 private:
     Stat * stat;  //statistical functions
-    map<string,double> _qRepair;    //quantities of each kind of component to be repaired
+    struct qrepair{
+        vector<double> q_ds;   //total quantity of damaged components (each damage states). size = number of damage states
+        double q;   //total quantity
+    };
+    map<string,qrepair> _qRepair;    //quantities of each kind of component to be repaired
 
     int nor=1000;   //number of realizations
     bool calc_collapse=false;     // consider or not consider collapse effects
@@ -52,8 +56,9 @@ private:
     void _AutoGenComponents(Building *bldg);
     void _CalcBldgConseqScenario(Building *bldg);   //only one ground motion input
     void _CalcComponentDamage(Component *cpn,int currRealization, double edp);
-    void _CalcComponentConseq(Component *cpn,int currRealization, double q_total);
+    void _CalcComponentConseq(Component *cpn,int currRealization);
     double _SimulateConseq(double q,double q_total, const FragilityCurve::ConsequenceCurve * curve); //simulate consequence, given a quantity and a consequence curve
+    FragilityCurve::Tag _SimulateBldgTag();
     void _GenRealizations(Building *bldg);
     void _SimulateDS(Component *cpn, double edp);    //simulate damage state, given an edp
 };

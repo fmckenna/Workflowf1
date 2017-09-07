@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include "Component.h"
+#include "FragilityCurve.h"
 using namespace std;
 
 class Building
@@ -59,6 +60,10 @@ public:
     //==========downtime===============================
     vector<double> totalDowntime;		//size=number of realizations
     double totalDowntimeMedian;
+
+    //==========Placards===============================
+    vector<FragilityCurve::Tag> redTag;		//size=number of realizations
+    double redTagProb;   //Probability that this building is red tagged (unsafe)
 
 private:
 

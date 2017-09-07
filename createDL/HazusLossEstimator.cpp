@@ -37,6 +37,13 @@ int HazusLossEstimator::determineLOSS(const char *filenameBIM,
     json_t *downtime = json_object();
     json_object_set(downtime,"MedianDowntime",json_real(bldg->totalDowntimeMedian));
     json_object_set(root,"Downtime",downtime);
+    json_t *tag = json_object();
+    if(bldg->redTagProb>0.5)
+        json_object_set(tag,"Tag",json_string("red"));
+    else
+        json_object_set(tag,"Tag",json_string("none"));
+    json_object_set(tag,"RedTagProbability",json_real(bldg->redTagProb));
+    json_object_set(root,"UnsafePlacards",tag);
     json_dump_file(root,filenameLOSS,0);
     json_object_clear(root);
 
@@ -212,6 +219,7 @@ void HazusLossEstimator::_GenRealizations(Building *bldg)
 {
     bldg->totalLoss.resize(nor);
     bldg->totalDowntime.resize(nor);
+    bldg->redTag.resize(nor);
     _AutoGenComponents(bldg);
 
     for(int i=0;i<=bldg->nStory;++i)
@@ -291,6 +299,7 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
         {
             bldg->totalLoss[currRealization]=bldg->replacementCost;
             bldg->totalDowntime[currRealization]=bldg->replacementTime;
+            bldg->redTag[currRealization]=FragilityCurve::red;
             continue;
         }
 
@@ -305,12 +314,14 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
         {
             bldg->totalLoss[currRealization]=bldg->replacementCost;
             bldg->totalDowntime[currRealization]=bldg->replacementTime;
+            bldg->redTag[currRealization]=FragilityCurve::red;
             continue;
         }
 
         //compute economic loss and downtime component-by-compunent
         bldg->totalLoss[currRealization]=0.0;
         bldg->totalDowntime[currRealization]=0.0;
+        bldg->redTag[currRealization]=FragilityCurve::none;
         _qRepair.clear();
         for (int i=0;i<=bldg->nStory;++i)
         {
@@ -348,8 +359,7 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
             double currFloorDowntime=0.0;
             for(unsigned int j=0;j<bldg->components[i].size();++j)
             {
-                double q_total=_qRepair[bldg->components[i][j].ID];
-                _CalcComponentConseq(&bldg->components[i][j],currRealization,q_total);
+                _CalcComponentConseq(&bldg->components[i][j],currRealization);
 
                 double currPGLoss=bldg->components[i][j].loss[currRealization];
                 bldg->totalLoss[currRealization]+=currPGLoss;
@@ -366,10 +376,20 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
            bldg->totalLoss[currRealization]=bldg->replacementCost-10.0; //-10 to tell them apart
         if (bldg->totalDowntime[currRealization]>bldg->replacementTime)
            bldg->totalDowntime[currRealization]=bldg->replacementTime-1.0; //-1 to tell them apart
-    }
+
+        bldg->redTag[currRealization]=_SimulateBldgTag();
+    }   //end realization
 
     bldg->totalLossMedian=stat->getMedian(bldg->totalLoss);
     bldg->totalDowntimeMedian=stat->getMedian(bldg->totalDowntime);
+
+    int nRedTags=0;
+    for(int currRealization=0;currRealization<nor;currRealization++)
+    {
+        if(bldg->redTag[currRealization]==FragilityCurve::red)
+            nRedTags++;
+    }
+    bldg->redTagProb=(double)nRedTags/(double)nor;
 }
 
 
@@ -409,8 +429,16 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
         }
     }
 
+    if(_qRepair.find(cpn->ID)==_qRepair.end())
+    {
+        qrepair qr;
+        qr.q=0.0;
+        qr.q_ds.resize(cpn->q_ds.size());
+        _qRepair.insert(make_pair(cpn->ID,qr));
+    }
+    _qRepair[cpn->ID].q+=cpn->q[currRealization];
     for(unsigned int i=0;i<cpn->q_ds.size();i++)
-        _qRepair[cpn->ID]+=cpn->q_ds[i];
+        _qRepair[cpn->ID].q_ds[i]+=cpn->q_ds[i];
 
  }
 
@@ -485,8 +513,12 @@ void HazusLossEstimator::_SimulateDS(Component *cpn, double edp)
     }
 }
 
-void HazusLossEstimator::_CalcComponentConseq(Component *cpn,int currRealization, double q_total)
+void HazusLossEstimator::_CalcComponentConseq(Component *cpn,int currRealization)
 {
+    double q_total=0.0;
+    for(unsigned int i=0;i<_qRepair[cpn->ID].q_ds.size();i++)
+        q_total+=_qRepair[cpn->ID].q_ds[i];
+
     FragilityCurve * fc=&fragilityLib[cpn->ID];
     //Calculate component economic loss and downtime
     int dsFlag=0;
@@ -552,4 +584,31 @@ double HazusLossEstimator::_SimulateConseq(double q, double q_total,const Fragil
     }
 
     return conseq;
+}
+
+FragilityCurve::Tag HazusLossEstimator::_SimulateBldgTag()
+{
+    //calc red tags
+    for(map<string,qrepair>::iterator it=_qRepair.begin();it!=_qRepair.end();it++)
+    {
+        const FragilityCurve *fc =&fragilityLib[it->first];
+        int thisDS=0;
+        for(unsigned int i=0;i<fc->dsGroups.size();i++)
+        {
+            for(unsigned int j=0;j<fc->dsGroups[i].dstates.size();j++)
+            {
+                if(fc->dsGroups[i].dstates[j].tagState==FragilityCurve::red)
+                {
+                    double median=fc->dsGroups[i].dstates[j].redTagMedian;
+                    double dispersion=fc->dsGroups[i].dstates[j].redTagBeta;
+                    double fractionNeeded=exp(stat->gaussrand(log(median),dispersion));
+                    double fractionDamaged=it->second.q_ds[thisDS]/it->second.q;
+                    if(fractionNeeded<=fractionDamaged)
+                        return FragilityCurve::red;
+                }
+                thisDS++;
+            }
+        }
+    }
+    return FragilityCurve::none;
 }
