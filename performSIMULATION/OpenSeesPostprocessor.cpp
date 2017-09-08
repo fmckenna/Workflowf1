@@ -37,6 +37,7 @@ OpenSeesPostprocessor::processResults(const char *EDP)
 
   json_dump_file(rootEDP,filenameEDP,0);
   json_object_clear(rootEDP);  
+  return 0;
 }
 
 
@@ -158,6 +159,7 @@ OpenSeesPostprocessor::processEDPs(){
       }
     }
   }
+  return 0;
 }
 
 

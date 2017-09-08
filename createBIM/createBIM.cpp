@@ -92,6 +92,7 @@ int main() {
       json_object_set(GI,"height",json_real(1.0));
 	  json_object_set(GI,"replacementCost",json_real(12000000.0));
 	  json_object_set(GI,"occupancy",json_string("office"));
+    json_object_set(GI,"replacementTime",json_real(180.0));
       json_object_set(GI,"yearBuilt",json_integer(atoi(rowFields[11])));
 
       int parcelID = atoi(rowFields[1]);

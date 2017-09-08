@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include "Component.h"
+#include "FragilityCurve.h"
 using namespace std;
 
 class Building
@@ -45,7 +46,7 @@ public:
     double storyheight;   //unit: m
     double area;		//story area. unit: m^2
     double replacementCost;	//unit: $
-    double totalRepairTime; //unit: day
+    double replacementTime; //unit: day
 
 
     //==========economic loss===============================
@@ -55,6 +56,14 @@ public:
     EDP edp;
     vector<double> totalLoss;		//size=number of realizations
     double totalLossMedian;
+
+    //==========downtime===============================
+    vector<double> totalDowntime;		//size=number of realizations
+    double totalDowntimeMedian;
+
+    //==========Placards===============================
+    vector<FragilityCurve::Tag> redTag;		//size=number of realizations
+    double redTagProb;   //Probability that this building is red tagged (unsafe)
 
 private:
 

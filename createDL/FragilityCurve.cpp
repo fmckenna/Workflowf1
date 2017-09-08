@@ -135,6 +135,13 @@ FragilityCurve::DamageState FragilityCurve::_SetDamageState(XMLElement * dsNode)
 {
     DamageState ds;
     ds.percent=toDoubleofXML(dsNode,"Percent");
+    const char *tag=dsNode->FirstChildElement( "ConsequenceGroup" )->FirstChildElement("TagState")->GetText();
+    if(!strncmp(tag,"Red",3))
+        ds.tagState=red;
+    else
+        ds.tagState=none;
+    ds.redTagMedian=toDoubleofXML(dsNode->FirstChildElement( "ConsequenceGroup" ),"RedTagMedian");
+    ds.redTagBeta=toDoubleofXML(dsNode->FirstChildElement( "ConsequenceGroup" ),"RedTagBeta");
     XMLElement * cost = dsNode->FirstChildElement( "ConsequenceGroup" )->FirstChildElement( "CostConsequence" );
     ds.cost.lowerQuantity=toDoubleofXML(cost,"LowerQuantity");
     ds.cost.maxAmount=toDoubleofXML(cost,"MaxAmount");
