@@ -80,7 +80,8 @@ with open(inputFile) as f:
     for line in f:
        if (lineCount > 0 and lineCount < 10):
            lineList=line.split(" ");
-           station = linList[0]
+           station = lineList[0]
+		   stn = obspy.read( station + '.x' )
            processStationRecord(station)
            print(station)
        lineCount += 1;

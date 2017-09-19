@@ -79,9 +79,9 @@ HazusLossEstimator::createEDP(const char *filenameBIM,
     int numStory = -1;
     json_array_foreach(mappingArray, mapIndex1, value1) {
 
-      int cline = json_integer_value(json_array_get(value1,0));
-      int floor = json_integer_value(json_array_get(value1,1));
-      int node = json_integer_value(json_array_get(value1,2));
+      int cline = json_integer_value(json_object_get(value1,"cline"));
+      int floor = json_integer_value(json_object_get(value1,"floor"));
+      int node = json_integer_value(json_object_get(value1,"node"));
       if (cline == 1) {
 	numStory++;
 	json_t *response = json_object();
