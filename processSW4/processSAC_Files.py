@@ -37,12 +37,10 @@ def processStationRecord(record):
         print( "Missing files for axis.")
     
     mainDict = {}
-    mainDict['type'] = 'Earthquake'
-    mainDict['subtype'] = 'UniformAcceleration'
-    mainDict['name'] = ''
+    mainDict['name'] = fileroot
     
-    eventList = {}
-    eventList1 = []
+    #eventList = []
+    #eventList1 = []
     
     # read and process the x axis, then add to list
     stn = obspy.read( fileroot + '.x' )
@@ -58,16 +56,16 @@ def processStationRecord(record):
     #eventList.append( processaxisfile(stn) )
     mainDict['data_z'] = processaxisfile(stn)
 
-    print('list size: ' + str(len(eventList)) )
+    print('list size: ' + str(len(mainDict)) )
 
     # package all three axis into one file with multiple events
-    eventList1.append(mainDict)
+    #eventList.append(mainDict)
     #mainDict['Events'] = eventList
-    eventList['Events'] = eventList1
+    #eventList['Events'] = eventList1
 
     # write results
     with open(fileroot + '.json', 'w') as f:
-        json.dump(eventList, f ,  cls=MyEncoder)
+        json.dump(mainDict, f ,  cls=MyEncoder)
 
 
 #
@@ -81,7 +79,7 @@ with open(inputFile) as f:
        if (lineCount > 0 and lineCount < 10):
            lineList=line.split(" ");
            station = lineList[0]
-		   stn = obspy.read( station + '.x' )
+           stn = obspy.read( station + '.x' )
            processStationRecord(station)
            print(station)
        lineCount += 1;
