@@ -26,7 +26,7 @@ public:
 
     Building();    
 
-    void readBIM(const char *path);
+    void readBIM(const char *fileEVENT, const char *fileBIM);
     void writeSAM(const char *path);
 
     string GetHazusType();    
@@ -53,6 +53,8 @@ public:
     double dampingRatio;
     double T0;
     double T2;
+
+    int ndf;
     
     double lambda(int n) {
       return 0.4053*(double)(n*n)+0.405*(double)(n)+0.1869;

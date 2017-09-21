@@ -25,7 +25,7 @@ int main(int argc, char **argv)
   HazusSAM_Generator* aim = new HazusSAM_Generator();
 
   Building *theBuilding = new Building();
-  theBuilding->readBIM(filenameBIM);
+  theBuilding->readBIM(filenameEVENT, filenameBIM);
   aim->CalcBldgPara(theBuilding);
   theBuilding->writeSAM(filenameSAM);
 
