@@ -4,6 +4,7 @@
 #include <string.h>
 #include <string>
 #include <sstream>
+#include <map>
 
 OpenSeesPreprocessor::OpenSeesPreprocessor()
   :filenameBIM(0),filenameSAM(0),filenameEVENT(0),filenameEDP(0),
@@ -142,25 +143,18 @@ OpenSeesPreprocessor::processNodes(ofstream &s){
   json_t *geometry = json_object_get(rootSAM,"Geometry");  
   json_t *nodes = json_object_get(geometry,"nodes");
 
-  int NDF = 0;
-  int NDM = 0;
+  NDM = 0;
+  NDF = 0;
 
   json_array_foreach(nodes, index, node) {
     int tag = json_integer_value(json_object_get(node,"name"));
     json_t *crds = json_object_get(node,"crd");
     int sizeCRD = json_array_size(crds);
+    int ndf = json_integer_value(json_object_get(node,"ndf"));
 
-    if (sizeCRD != NDM) {
-      if (sizeCRD == 1) {
-	NDM = 1;
-	NDF = 1;
-      } else if (sizeCRD == 2) {
-	NDM = 2;
-	NDF = 3;
-      } else if (sizeCRD == 3) {
-	NDM = 3;
-	NDF = 6;
-      }
+    if (sizeCRD != NDM || ndf != NDF) {
+      NDM = sizeCRD;
+      NDF = ndf;
       // issue new model command if node size changes
       s << "model BasicBuilder -ndm " << NDM << " -ndf " << NDF << "\n";
     } 
@@ -176,7 +170,7 @@ OpenSeesPreprocessor::processNodes(ofstream &s){
     if (mass != NULL) {
       s << "-mass ";
       double massV = json_real_value(mass);
-      for (int i=0; i<NDM; i++)
+      for (int i=0; i<NDF; i++)
 	s << massV << " " ;
     }
 
@@ -208,6 +202,18 @@ OpenSeesPreprocessor::processElements(ofstream &s){
 
       int matTag = json_integer_value(json_object_get(element,"uniaxial_material"));
       s << "-mat " << matTag << " -dir 1 \n";
+    }
+    else if (strcmp(type,"shear_beam2d") == 0) {
+      s << "element zeroLength " << tag << " " ;
+      json_t *nodes = json_object_get(element,"nodes");
+      json_t *nodeTag;
+      int nodeIndex;
+      json_array_foreach(nodes, nodeIndex, nodeTag) {
+	s << json_integer_value(nodeTag) << " " ;
+      }
+
+      int matTag = json_integer_value(json_object_get(element,"uniaxial_material"));
+      s << "-mat " << matTag << " " << matTag << " -dir 1 2\n";
     }
   }
   return 0;
@@ -271,7 +277,10 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
 	    
 	    s << "recorder EnvelopeNode -file " << fileName;
 	    s << " -timeSeries "  << numTimeSeries-1;
-	    s << " -node " << nodeTag << " -dof 1 accel\n";
+	    s << " -node " << nodeTag << " -dof ";
+	    for (int i=1; i<=NDF; i++)
+	      s << i << " " ;
+	    s << " accel\n";
 	  }
 
 	  else if (strcmp(type,"max_drift") == 0) {
@@ -309,7 +318,10 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
 	    const char *fileName = fileString.c_str();
 	    
 	    s << "recorder Node -file " << fileName;
-	    s << " -node " << nodeTag << " -dof 1 disp\n";
+	    s << " -node " << nodeTag << " -dof ";
+	    for (int i=1; i<=NDF; i++)
+	      s << i << " " ;
+	    s << " disp\n";
 	  }
 	}
       }
@@ -331,35 +343,64 @@ OpenSeesPreprocessor::processEvent(ofstream &s,
 				   json_t *event, 
 				   int &numPattern, 
 				   int &numSeries){
+  json_t *timeSeries;
+  json_t *pattern;
 
-  const char *type = json_string_value(json_object_get(event,"type"));
-  const char *subType = json_string_value(json_object_get(event,"subtype"));    
-  if (strcmp(subType,"UniformAcceleration") == 0) {
-    double dt = json_real_value(json_object_get(event,"dT"));
-    json_t *data = json_object_get(event,"data");
-    s << "timeSeries Path " << numSeries << " -dt " << dt;
-    s << " -values \{ ";
-    json_t *dataV;
-    int dataIndex;
-    json_array_foreach(data, dataIndex, dataV) {
-      s << json_real_value(dataV) << " " ;
-    }
-    s << " }\n";
-
-    int dirn = 1;
-    
-    s << "pattern UniformExcitation " << numPattern << " " << dirn;
-    s << " -accel " << numSeries << "\n";
-
+  const char *eventType = json_string_value(json_object_get(event,"type"));
+  if (strcmp(eventType,"Seismic") == 0) {
     analysisType = 1;
-    numSteps = json_array_size(data);
-    dT = dt;
-    printf("%d %d %f\n",analysisType, numSteps, dT);
+    numSteps = json_integer_value(json_object_get(event,"numSteps"));
+    dT = json_real_value(json_object_get(event,"dT"));
+  }
 
-    numSeries++; 
-    numPattern++;
+  std::map <string,int> timeSeriesList;
+  std::map <string,int>::iterator it;
 
-  }  
+  int index;
+  json_t *timeSeriesArray = json_object_get(event,"timeSeries");
+  json_array_foreach(timeSeriesArray, index, timeSeries) {
+    const char *subType = json_string_value(json_object_get(timeSeries,"type"));        
+    if (strcmp(subType,"Value")  == 0) {
+      double dt = json_real_value(json_object_get(timeSeries,"dT"));
+      json_t *data = json_object_get(timeSeries,"data");
+      s << "timeSeries Path " << numSeries << " -dt " << dt;
+      s << " -values \{ ";
+      json_t *dataV;
+      int dataIndex;
+      json_array_foreach(data, dataIndex, dataV) {
+	s << json_real_value(dataV) << " " ;
+      }
+      s << " }\n";
+
+      string name(json_string_value(json_object_get(timeSeries,"name")));
+      printf("%s\n",name.c_str());
+      timeSeriesList[name]=numSeries;
+      numSeries++;
+    }
+  }
+
+  json_t *patternArray = json_object_get(event,"pattern");
+  json_array_foreach(patternArray, index, pattern) {
+    const char *subType = json_string_value(json_object_get(pattern,"type"));        
+    if (strcmp(subType,"UniformAcceleration")  == 0) {
+      int dirn = json_integer_value(json_object_get(pattern,"dof"));
+
+      int series = 0;
+      string name(json_string_value(json_object_get(pattern,"timeSeries")));
+      printf("%s\n",name.c_str());
+      it = timeSeriesList.find(name);
+      if (it != timeSeriesList.end())
+	series = it->second;
+
+      int seriesTag = timeSeriesList[name];
+      s << "pattern UniformExcitation " << numPattern << " " << dirn;
+      s << " -accel " << series << "\n";
+      numPattern++;
+    }
+  }
+
+  //  printf("%d %d %f\n",analysisType, numSteps, dT);
+
   return 0;
 }
 
