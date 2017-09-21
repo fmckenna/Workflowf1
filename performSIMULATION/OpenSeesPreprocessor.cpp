@@ -275,8 +275,11 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
 
 	    const char *fileName = fileString.c_str();
 	    
+	    int startTimeSeries = numTimeSeries-NDF;
 	    s << "recorder EnvelopeNode -file " << fileName;
-	    s << " -timeSeries "  << numTimeSeries-1;
+	    s << " -timeSeries ";
+	    for (int i=0; i<NDF; i++)
+	      s << i+startTimeSeries << " " ;
 	    s << " -node " << nodeTag << " -dof ";
 	    for (int i=1; i<=NDF; i++)
 	      s << i << " " ;
