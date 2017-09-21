@@ -71,11 +71,11 @@ Building::BldgOccupancy Building::s2BldgOccupancy(string s)
 }
 
 void
-Building::readBIM(const char *path)
+Building::readBIM(const char *event, const char *bim)
 {
-  //Parse Json input file
+  //Parse BIM Json input file
   json_error_t error;
-  json_t *rootBIM = json_load_file(path, 0, &error);
+  json_t *rootBIM = json_load_file(bim, 0, &error);
 
   json_t *GI = json_object_get(rootBIM,"GI");  
   json_t *sType = json_object_get(GI,"structType");
@@ -93,6 +93,10 @@ Building::readBIM(const char *path)
   nStory=json_integer_value(nType);
   area=json_number_value(aType);
   storyheight=json_number_value(hType)/(nStory*1.);
+
+  // parse EVENT (to see dimensionality needed
+  ndf = 1;
+  ndf = 2;
 }
 
 void
@@ -111,7 +115,9 @@ Building::writeSAM(const char *path)
     json_object_set(node, "name", json_integer(1)); // +2 as we need node at 1 
     json_t *nodePosn = json_array();      
     json_array_append(nodePosn,json_real(0.0));
+    json_array_append(nodePosn,json_real(0.0));
     json_object_set(node, "crd", nodePosn);
+    json_object_set(node, "ndf", json_integer(ndf));
     json_array_append(nodes,node);
 
     json_t *nodeMap = json_object();
@@ -130,7 +136,9 @@ Building::writeSAM(const char *path)
       json_object_set(node, "mass", json_real(floorParams[i].mass));
       json_t *nodePosn = json_array();      
       json_array_append(nodePosn,json_real(floorParams[i].floor*storyheight));
+      json_array_append(nodePosn,json_real(0.0));
       json_object_set(node, "crd", nodePosn);
+      json_object_set(node, "ndf", json_integer(ndf));
 
       nodeMap = json_object();
       json_object_set(nodeMap,"cline",json_integer(1));
@@ -139,7 +147,11 @@ Building::writeSAM(const char *path)
       json_array_append(nodeMapping, nodeMap);
 
       json_object_set(element, "name", json_integer(interstoryParams[i].story));
-      json_object_set(element, "type", json_string("shear_beam"));
+      if (ndf == 1)
+	json_object_set(element, "type", json_string("shear_beam"));
+      else
+	json_object_set(element, "type", json_string("shear_beam2d"));
+
       json_object_set(element, "uniaxial_material", json_integer(i+1));
       json_t *eleNodes = json_array();      
       json_array_append(eleNodes,json_integer(i+1));
@@ -202,7 +214,7 @@ string Building::GetHazusType()
         break;
     case URM:
         if(nStory<=2)
-            s="URML";
+           s="URML";
         else
             s="URMM";
         break;

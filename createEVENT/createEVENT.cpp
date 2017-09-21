@@ -83,9 +83,10 @@ int main(int argc, char **argv) {
   }
   
   const char **headerFields = CsvParser_getFields(header);
-  for (int i = 0 ; i < CsvParser_getNumFields(header) ; i++) {
-    printf("TITLE: %d %s\n", i, headerFields[i]);
-  }    
+  // for (int i = 0 ; i < CsvParser_getNumFields(header) ; i++) {
+  //   printf("TITLE: %d %s\n", i, headerFields[i]);
+  //}    
+
   CsvRow *row;
   
   int count = 0;
@@ -173,7 +174,6 @@ int main(int argc, char **argv) {
   // add acceleration record at station to event array in events file
   //
 
-  error;
   root = json_load_file(filenameEVENT, 0, &error);
   json_t *eventsArray;
 
@@ -185,11 +185,67 @@ int main(int argc, char **argv) {
     eventsArray = json_object_get(root,"Events");
   }
 
-  json_t *rootNewEvent = json_load_file(stationName.c_str(), 0, &error);
-  if(!rootNewEvent) {
+  json_t *newEvent = json_object();
+
+  json_t *dataSW4 = json_load_file(stationName.c_str(), 0, &error);
+  if(!dataSW4) {
     std::cerr << "THAT FAILED\n" << stationName;
   } else {
-    json_array_append(eventsArray,rootNewEvent);
+
+    json_t *timeSeriesArray;
+    json_t *patternArray;
+    
+    timeSeriesArray = json_array();    
+    patternArray = json_array();    
+    
+    json_t *dt  = json_object_get(dataSW4,"dT");
+    json_t *name  = json_object_get(dataSW4,"name");
+    json_t *dataX = json_object_get(dataSW4,"data_x");
+    json_t *dataY = json_object_get(dataSW4,"data_y");
+    json_t *dataZ = json_object_get(dataSW4,"data_z");
+
+    json_object_set(newEvent,"name",name);    
+    json_object_set(newEvent,"type",json_string("Seismic"));
+    json_object_set(newEvent,"dT",dt);
+    int numSteps = json_array_size(dataX);
+    json_object_set(newEvent,"numSteps",json_integer(numSteps));
+    //    json_object_set(newEvent,"subType",json_string("UniformAcceleration"));
+    //json_object_set(newEvent,"dT",dt);
+    //json_object_set(newEvent,"accelX",dataX);
+    //json_object_set(newEvent,"accelY",dataY);
+    //json_object_set(newEvent,"accelZ",dataZ);
+    
+    json_t *seriesX = json_object();
+    json_object_set(seriesX,"name",json_string("accel_X"));
+    json_object_set(seriesX,"type",json_string("Value"));
+    json_object_set(seriesX,"dT",dt);
+    json_object_set(seriesX,"data",dataX);
+    json_array_append(timeSeriesArray, seriesX);
+
+    json_t *seriesY = json_object();
+    json_object_set(seriesY,"name",json_string("accel_Y"));
+    json_object_set(seriesY,"type",json_string("Value"));
+    json_object_set(seriesY,"data",dataY);
+    json_object_set(seriesY,"dT",dt);
+    json_array_append(timeSeriesArray, seriesY);
+
+    json_t *patternX = json_object();
+    json_object_set(patternX,"type",json_string("UniformAcceleration"));
+    json_object_set(patternX,"timeSeries",json_string("accel_X"));
+    json_object_set(patternX,"dof",json_integer(1));
+    json_array_append(patternArray, patternX);
+
+    json_t *patternY = json_object();
+    json_object_set(patternY,"type",json_string("UniformAcceleration"));
+    json_object_set(patternY,"timeSeries",json_string("accel_Y"));
+    json_object_set(patternY,"dof",json_integer(2));
+    json_array_append(patternArray, patternY);
+
+    json_object_set(newEvent,"timeSeries",timeSeriesArray);
+    json_object_set(newEvent,"pattern",patternArray);
+
+
+    json_array_append(eventsArray, newEvent);
   }
 
   json_dump_file(root,filenameEVENT,0);

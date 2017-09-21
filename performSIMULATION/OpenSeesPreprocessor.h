@@ -43,6 +43,9 @@ class OpenSeesPreprocessor {
   int analysisType;
   int numSteps;
   double dT;
+
+  int NDM;
+  int NDF;
 };
 
 #endif // OPENSEES_PREPROCESSOR_H
