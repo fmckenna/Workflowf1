@@ -55,9 +55,9 @@ HazusLossEstimator::createEDP(const char *filenameBIM,
     // check earthquake
     json_t *type = json_object_get(value,"type");  
     const char *eventType = json_string_value(type);
-    if (strcmp(eventType,"Earthquake") != 0) {
+    if (strcmp(eventType,"Seismic") != 0) {
 	json_object_clear(rootEVENT);
-	printf("ERROR event type %s not Earthquake", eventType);
+	printf("ERROR event type %s not Seismic", eventType);
 	return -1;
     }
 
@@ -79,9 +79,12 @@ HazusLossEstimator::createEDP(const char *filenameBIM,
     int numStory = -1;
     json_array_foreach(mappingArray, mapIndex1, value1) {
 
-      int cline = json_integer_value(json_array_get(value1,0));
-      int floor = json_integer_value(json_array_get(value1,1));
-      int node = json_integer_value(json_array_get(value1,2));
+      int cline = json_integer_value(json_object_get(value1,"cline"));
+      int floor = json_integer_value(json_object_get(value1,"floor"));
+      int node = json_integer_value(json_object_get(value1,"node"));
+
+      //      printf("%d %d %d\n",cline,floor,node);
+
       if (cline == 1) {
 	numStory++;
 	json_t *response = json_object();
