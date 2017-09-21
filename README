@@ -3,6 +3,7 @@
 # Description: Contains applications neeed for a regional loss estimaion
 # due to an earthquake event. Applications in subdirectories:
 
+0. processSW4 - to process SW4 .x,.y,and .z files into 1 .json file
 1. createBIM - given UrbanSim data generate BIM models
 2. createEVENT - given BIM model get input motion for building (the EVENT)
 3. createSAM - given BIM and EVENT use Hazus data to generate a shear model
