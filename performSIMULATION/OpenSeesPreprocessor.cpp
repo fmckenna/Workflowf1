@@ -354,7 +354,8 @@ OpenSeesPreprocessor::processEvent(ofstream &s,
     analysisType = 1;
     numSteps = json_integer_value(json_object_get(event,"numSteps"));
     dT = json_real_value(json_object_get(event,"dT"));
-  }
+  } else
+    return -1;
 
   std::map <string,int> timeSeriesList;
   std::map <string,int>::iterator it;
@@ -402,6 +403,12 @@ OpenSeesPreprocessor::processEvent(ofstream &s,
     }
   }
 
+  int nodeTag = getNode(1,1);
+  s << "fix " << nodeTag;
+  for (int i=0; i<NDF; i++)
+    s << " " << 1;
+  s << "\n";
+  
   //  printf("%d %d %f\n",analysisType, numSteps, dT);
 
   return 0;
