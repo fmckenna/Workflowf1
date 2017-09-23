@@ -46,6 +46,10 @@ createBIM
 createEVENT
 createEDP
 createSAM
+createLOSS
+createDL/DL-data.tar.gz
 mainPreprocessor
 mainPostprocessor
 *.tcl
+
+

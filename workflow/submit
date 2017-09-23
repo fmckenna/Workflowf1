@@ -7,6 +7,15 @@ TOP_DIR=`cd $TOP_DIR && pwd`
 
 cd $TOP_DIR/workflow
 
+if [ ! -e "$TOP_DIR/workflow/inputs/buildings.csv" ]; then
+    echo "Please put a buildings.csv file in the inputs/ directory"
+    exit 1
+fi
+if [ ! -e "$TOP_DIR/workflow/inputs/parcels.csv" ]; then
+    echo "Please put a parcels.csv file in the inputs/ directory"
+    exit 1
+fi
+
 EXEC_SITE=$1
 if [ "x$EXEC_SITE" = "x" ]; then
     EXEC_SITE="condorpool"

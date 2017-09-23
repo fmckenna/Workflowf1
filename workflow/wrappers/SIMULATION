@@ -9,12 +9,24 @@ BID=$1
 # hold on failures
 touch $BID-SIMULATION.json
 
+echo
+echo
+cat $BID-EDP.json
+echo
+echo
+
 chmod 755 mainPreprocessor mainPostprocessor OpenSees
 
 ./mainPreprocessor $BID-BIM.json $BID-SAM.json $BID-EVENT.json $BID-EDP.json example.tcl
 ./OpenSees example.tcl
 ./mainPostprocessor $BID-BIM.json $BID-SAM.json $BID-EVENT.json $BID-EDP.json
 
-ls -l
+# output is an updated $BID-EDP.json, which we need to copy to the final json
+cp $BID-EDP.json $BID-SIMULATION.json
 
+echo
+echo
+cat $BID-SIMULATION.json
+echo
+echo
 

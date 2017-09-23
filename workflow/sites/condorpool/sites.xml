@@ -18,7 +18,7 @@
         <profile namespace="pegasus" key="style" >condor</profile>
         <profile namespace="condor" key="universe" >vanilla</profile>
         <profile namespace="condor" key="request_memory" >1 GB</profile>
-        <profile namespace="condor" key="request_disk" >3 GB</profile>
+        <profile namespace="condor" key="request_disk" >10 GB</profile>
     </site>
     
 </sitecatalog>

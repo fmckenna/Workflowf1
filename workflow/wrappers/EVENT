@@ -4,6 +4,8 @@ set -e
 
 BID=$1
 
+tar xzf records.tar.gz
+
 chmod 755 createEVENT
 ./createEVENT $BID-BIM.json $BID-EVENT.json
 
