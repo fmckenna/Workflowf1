@@ -276,9 +276,9 @@ int main(int argc, const char **argv) {
   while ((row = CsvParser_getRow(csvparser))) {
     if (currentRow >= minRow && currentRow <= maxRow) {
       const char **rowFields = CsvParser_getFields(row);
-      //       for (i = 0 ; i < CsvParser_getNumFields(row) ; i++) {
-      //   printf("FIELD: %d %s\n", i, rowFields[i]);
-      // }
+       for (i = 0 ; i < CsvParser_getNumFields(row) ; i++) {
+      printf("FIELD: %d %s\n", i, rowFields[i]);
+      }
       //string filename1;
       //stringstream ss;
       //ss.clear();
