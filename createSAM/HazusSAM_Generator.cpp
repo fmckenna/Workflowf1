@@ -65,7 +65,7 @@ void HazusSAM_Generator::ReadHazusData()
 void HazusSAM_Generator::CalcBldgPara(Building *bldg)
 {
     const double PI=3.14159265358979;
-    const double UNIT_MASS=1000.0;
+    const double UNIT_MASS=500.0;
     string strucType=bldg->GetHazusType();
 
     bldg->interstoryParams.clear();

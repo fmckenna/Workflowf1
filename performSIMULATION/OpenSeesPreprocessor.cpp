@@ -313,15 +313,20 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
 
 	    int nodeTag = this->getNode(cline,floor);	    
 
-	    string fileString;
-	    ostringstream temp;  //temp as in temporary
+        string fileString,nodestring;
+        ostringstream temp,tempnode;  //temp as in temporary
 	    temp << edpEventName << "." << type << "." << cline << "." << floor << ".out";
 	    fileString=temp.str(); 
 
 	    const char *fileName = fileString.c_str();
 	    
 	    s << "recorder Node -file " << fileName;
-	    s << " -node " << nodeTag << " -dof ";
+        for(int i=1;i<=nodeTag;i++){
+          tempnode<<i<<" ";
+        }
+        nodestring=tempnode.str();
+        const char *filenode = nodestring.c_str();
+        s << " -node " << filenode << " -dof ";
 	    for (int i=1; i<=NDF; i++)
 	      s << i << " " ;
 	    s << " disp\n";
@@ -354,7 +359,8 @@ OpenSeesPreprocessor::processEvent(ofstream &s,
     analysisType = 1;
     numSteps = json_integer_value(json_object_get(event,"numSteps"));
     dT = json_real_value(json_object_get(event,"dT"));
-  }
+  } else
+    return -1;
 
   std::map <string,int> timeSeriesList;
   std::map <string,int>::iterator it;
@@ -402,6 +408,12 @@ OpenSeesPreprocessor::processEvent(ofstream &s,
     }
   }
 
+  int nodeTag = getNode(1,1);
+  s << "fix " << nodeTag;
+  for (int i=0; i<NDF; i++)
+    s << " " << 1;
+  s << "\n";
+  
   //  printf("%d %d %f\n",analysisType, numSteps, dT);
 
   return 0;
