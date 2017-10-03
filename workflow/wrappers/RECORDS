@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e
+
+python createRecords.py
+
+tar czf records.tar.gz *.json
+
+
+

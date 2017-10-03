@@ -40,6 +40,4 @@ clean:
 
 distclean: clean
 	cd include; make distclean
-	$(RM) createEDP
-
-
+	$(RM) createLOSS

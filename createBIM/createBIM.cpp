@@ -233,15 +233,15 @@ int main(int argc, const char **argv) {
   
   const char **headerFields = CsvParser_getFields(header);
   for (i = 0 ; i < CsvParser_getNumFields(header) ; i++) {
-    printf("TITLE: %d %s\n", i, headerFields[i]);
+    ;//    printf("TITLE: %d %s\n", i, headerFields[i]);
   }    
   CsvRow *row;
   
   while ((row = CsvParser_getRow(csvparser))) {
     const char **rowFields = CsvParser_getFields(row);
-    // for (i = 0 ; i < CsvParser_getNumFields(row) ; i++) {
-    //   printf("FIELD: %s\n", rowFields[i]);
-    // }
+    for (i = 0 ; i < CsvParser_getNumFields(row) ; i++) {
+      ;//   printf("FIELD: %d %s\n", i, rowFields[i]);
+    }
     char *pEnd;
     int parcelID = atoi(rowFields[0]);
     double x = strtod(rowFields[12],&pEnd);
@@ -266,7 +266,7 @@ int main(int argc, const char **argv) {
   
   headerFields = CsvParser_getFields(header);
   for (i = 0 ; i < CsvParser_getNumFields(header) ; i++) {
-    //      printf("TITLE: %d %s\n", i, headerFields[i]);
+    ; //        printf("TITLE: %d %s\n", i, headerFields[i]);
   }
   
   int currentRow = 1;
@@ -276,8 +276,8 @@ int main(int argc, const char **argv) {
   while ((row = CsvParser_getRow(csvparser))) {
     if (currentRow >= minRow && currentRow <= maxRow) {
       const char **rowFields = CsvParser_getFields(row);
-      // for (i = 0 ; i < CsvParser_getNumFields(row) ; i++) {
-      //   printf("FIELD: %s\n", rowFields[i]);
+      //       for (i = 0 ; i < CsvParser_getNumFields(row) ; i++) {
+      //   printf("FIELD: %d %s\n", i, rowFields[i]);
       // }
       //string filename1;
       //stringstream ss;
@@ -303,6 +303,7 @@ int main(int argc, const char **argv) {
       //json_object_set(GI,"occupancy",json_string("office"));
       //deteroccupancy(atoi(rowFields[15]), buildoccupancy, replacementcost);
       json_object_set(GI,"occupancy",json_string(deteroccupancy(atoi(rowFields[15]))));
+
       json_object_set(GI,"height",json_real(3.0*numStory));
       json_object_set(GI,"replacementCost",json_real(replacementcost(atoi(rowFields[15]))*strtod(rowFields[8],&pEnd)));
       json_object_set(GI,"replacementTime",json_real(180.0));

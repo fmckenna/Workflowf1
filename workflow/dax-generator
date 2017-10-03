@@ -40,11 +40,20 @@ def add_task_files(dax, job, lfn, base_dir, recursed=False):
             print "ERROR: Input file does not exist: " + pfn
             sys.exit(1)
         if lfn not in task_files[task_name]:
-            task_files[task_name][lfn] = File(lfn)
-            task_files[task_name][lfn].addPFN(PFN("file://" + \
-                    "/" + pfn, "local"))
-            print " ... registering input lfn/pfn: " + lfn + "  (" + pfn + ")"
-            dax.addFile(task_files[task_name][lfn])
+            # do we already have the lfn registered for another task?
+            f = None
+            for tname in task_files:
+                if lfn in task_files[tname]:
+                    f = task_files[tname][lfn]
+                    break
+            if f is not None:
+                task_files[task_name][lfn] = f
+            else:
+                task_files[task_name][lfn] = File(lfn)
+                task_files[task_name][lfn].addPFN(PFN("file://" + \
+                        "/" + pfn, "local"))
+                print " ... registering input lfn/pfn: " + lfn + "  (" + pfn + ")"
+                dax.addFile(task_files[task_name][lfn])
 
 
 pegasus_bin_dir = sys.argv[1]
@@ -66,9 +75,34 @@ for exe_name in os.listdir("./wrappers/"):
     exe = Executable(name=exe_name, arch="x86_64", installed=False)
     exe.addPFN(PFN("file://" + \
                    top_dir + "/workflow/wrappers/" + exe_name, "local"))
+    if exe_name == "BIM":
+        # BIM requires some extra memory
+        exe.addProfile(Profile(Namespace.CONDOR, 
+                               key="request_memory",
+                               value="3 GB"))
     dax.addExecutable(exe)
 
-for building_id in range(1, 1 + 1):
+
+###################################################################
+# createRecords
+
+records = Job(name="RECORDS")
+add_task_files(dax, records, "createRecords.py", top_dir + "/processSW4")
+add_task_files(dax, records, "HFmeta", top_dir + "/createEVENT")
+add_task_files(dax, records, "S_30_20.json", top_dir + "/createEVENT")
+
+# inputs
+for f in task_files["RECORDS"]:
+    records.uses(f, link=Link.INPUT)
+
+# outputs
+records_tar = File("records.tar.gz")
+records.uses(records_tar, link=Link.OUTPUT, transfer=False)
+
+dax.addJob(records)
+
+
+for building_id in range(1, 100 + 1):
 
     print "Adding tasks for bulding %d ..." %(building_id)
 
@@ -82,7 +116,8 @@ for building_id in range(1, 1 + 1):
     bim = Job(name="BIM")
     bim.profile(namespace="pegasus", key="label", value=label)
     add_task_files(dax, bim, "createBIM", top_dir + "/createBIM")
-    add_task_files(dax, bim, "exampleBIM.json", top_dir + "/createBIM")
+    add_task_files(dax, bim, "parcels.csv", top_dir + "/workflow/inputs")
+    add_task_files(dax, bim, "buildings.csv", top_dir + "/workflow/inputs")
     bim.addArguments(str(building_id))
 
     # inputs
@@ -109,12 +144,14 @@ for building_id in range(1, 1 + 1):
     for f in task_files["EVENT"]:
         event.uses(f, link=Link.INPUT)
     event.uses(bim_json, link=Link.INPUT)
+    event.uses(records_tar, link=Link.INPUT)
 
     # outputs
     event_json = File("%d-EVENT.json" %(building_id))
     event.uses(event_json, link=Link.OUTPUT, transfer=True)
 
     dax.addJob(event)
+    dax.depends(parent=records, child=event)
     dax.depends(parent=bim, child=event)
 
     ###################################################################

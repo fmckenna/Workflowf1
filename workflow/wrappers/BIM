@@ -5,9 +5,13 @@ set -e
 BID=$1
 
 chmod 755 createBIM
-# FIXME
 
-# for now, just copy the example one
-cp exampleBIM.json $BID-BIM.json
+./createBIM $BID $BID
+
+echo
+echo
+ls -l
+echo
+echo
 
 
