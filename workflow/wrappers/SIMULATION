@@ -17,9 +17,22 @@ echo
 
 chmod 755 mainPreprocessor mainPostprocessor OpenSees
 
-./mainPreprocessor $BID-BIM.json $BID-SAM.json $BID-EVENT.json $BID-EDP.json example.tcl
-./OpenSees example.tcl
-./mainPostprocessor $BID-BIM.json $BID-SAM.json $BID-EVENT.json $BID-EDP.json
+set +e
+(./mainPreprocessor $BID-BIM.json $BID-SAM.json $BID-EVENT.json $BID-EDP.json example.tcl && \
+ ./OpenSees example.tcl && \
+ ./mainPostprocessor $BID-BIM.json $BID-SAM.json $BID-EVENT.json $BID-EDP.json) >$BID-SIMULATION.out 2>&1
+RC=$?
+set -e
+
+cat $BID-SIMULATION.out
+
+if [ "$RC" != "0" ]; then
+    if grep "HystereticMaterial::HystereticMaterial -- input backbone is not unique" $BID-SIMULATION.out >/dev/null 2>&1; then
+        # expected failure - area is 0?
+        echo "OpenSees failed, but ignore it in this case..."
+        RC=0
+    fi
+fi
 
 # output is an updated $BID-EDP.json, which we need to copy to the final json
 cp $BID-EDP.json $BID-SIMULATION.json
@@ -29,4 +42,6 @@ echo
 cat $BID-SIMULATION.json
 echo
 echo
+
+exit $RC
 

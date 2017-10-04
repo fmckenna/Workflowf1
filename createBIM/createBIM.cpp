@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <sstream>
 
 #include "csvparser.h"
 #include <jansson.h>
@@ -84,7 +85,7 @@ int main(int argc, const char **argv) {
     ; //        printf("TITLE: %d %s\n", i, headerFields[i]);
   }
   
-  int currentRow = 1;
+  long currentRow = 1;
   
   json_t *root = json_object();
   
@@ -137,7 +138,9 @@ int main(int argc, const char **argv) {
       filename = "exampleBIM.json";
 
       if (argc > 1) {
-	filename = std::string(name) + std::string("-BIM.json");
+          std::ostringstream temp;
+          temp<<currentRow;
+	filename = temp.str() + std::string("-BIM.json");
       }
 	
       // write the file & clean memory

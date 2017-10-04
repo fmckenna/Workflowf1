@@ -4,7 +4,17 @@ set -e
 
 BID=$1
 
-tar xzf records.tar.gz
+(
+    # Wait for lock on .untarlock (fd 200) for 15 minutes
+    flock -x -w 900 200
+
+    # only untar ones in clustered jobs
+    if [ ! -e ".records-untared-stamp" ]; then
+        touch .records-untared-stamp
+        tar xzf records.tar.gz
+        rm -f records.tar.gz
+    fi
+) 200>.untarlock
 
 chmod 755 createEVENT
 ./createEVENT $BID-BIM.json $BID-EVENT.json

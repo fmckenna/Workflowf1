@@ -2,11 +2,12 @@
 
 set -e
 
-BID=$1
+BID_LOW=$1
+BID_HIGH=$2
 
 chmod 755 createBIM
 
-./createBIM $BID $BID
+./createBIM $BID_LOW $BID_HIGH
 
 echo
 echo

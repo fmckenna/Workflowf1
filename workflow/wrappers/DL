@@ -8,10 +8,15 @@ BID=$1
 # hold on failures
 touch $BID-DL.json
 
-# extract the data tarball unless it has already been done
-if [ ! -e data/ATCCurves ]; then
-    tar xzf DL-data.tar.gz
-fi
+(
+    # Wait for lock on .untarlock (fd 200) for 15 minutes
+    flock -x -w 900 200
+
+    # extract the data tarball unless it has already been done
+    if [ ! -e data/ATCCurves ]; then
+        tar xzf DL-data.tar.gz
+    fi
+) 200>.untarlock
 
 chmod 755 createLOSS
 ./createLOSS $BID-BIM.json $BID-EDP.json $BID-DL.json

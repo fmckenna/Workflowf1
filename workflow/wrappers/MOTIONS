@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e
+set -v
+
+tar xzf HF_M7.0_3DTOPO_H=15MR_sac.tar.gz
+cd HF_M7.0_3DTOPO_H=15MR_sac
+
+mv HF_M7.0_3DTOPO_H=15MR.gmpe_metadata HFmeta
+
+python ../processSAC_Files.py
+
+tar czf ../motions.tar.gz *.json HFmeta
+

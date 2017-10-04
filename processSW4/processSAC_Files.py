@@ -78,10 +78,10 @@ inputFile='HFmeta';
 lineCount=0;
 with open(inputFile) as f:
     for line in f:
-       if (lineCount > 0 and lineCount < 10):
+       if (lineCount > 1):
            lineList=line.split(" ");
            station = lineList[0]
-		   stn = obspy.read( station + '.x' )
+           stn = obspy.read( station + '.x' )
            processStationRecord(station)
            print(station)
        lineCount += 1;

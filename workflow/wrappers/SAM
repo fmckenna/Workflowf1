@@ -1,8 +1,11 @@
 #!/bin/bash
 
 set -e
+set -v
 
 BID=$1
+
+ls -l
 
 # make sure HazusData.txt is where we expect it
 mkdir -p data

@@ -42,7 +42,7 @@ moc*
 
 # EXAMPLE & EXE
 *.out
-createBIM
+createBIM/createBIM
 createEVENT
 createEDP
 createSAM
@@ -52,4 +52,6 @@ mainPreprocessor
 mainPostprocessor
 *.tcl
 
+workflow/inputs/*.gz
+workflow/inputs/*.csv
 

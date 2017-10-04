@@ -11,13 +11,14 @@
         <profile namespace="env" key="SSH_PRIVATE_KEY">${HOME}/.ssh/workflow</profile>
     </site>
 
-    <site  handle="condorpool" arch="x86_64" os="LINUX">
+    <site  handle="compute" arch="x86_64" os="LINUX">
         <directory type="shared-scratch" path="${RUN_DIR}/intermediate">
             <file-server operation="all" url="scp://${USER}@${HOSTNAME}${RUN_DIR}/intermediate"/>
         </directory>
         <profile namespace="pegasus" key="style" >condor</profile>
         <profile namespace="condor" key="universe" >vanilla</profile>
-        <profile namespace="condor" key="request_memory" >1 GB</profile>
+        <profile namespace="condor" key="requirements" >regexp("isi.edu", TARGET.FileSystemDomain)</profile>
+        <profile namespace="condor" key="request_memory" >3 GB</profile>
         <profile namespace="condor" key="request_disk" >10 GB</profile>
     </site>
     

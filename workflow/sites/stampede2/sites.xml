@@ -10,13 +10,15 @@
         </directory>
     </site>
 
-    <site  handle="stampede2" arch="x86_64" os="LINUX">
+    <site  handle="compute" arch="x86_64" os="LINUX">
         <profile namespace="pegasus" key="style" >condor</profile>
         <profile namespace="condor" key="universe" >vanilla</profile>
+        <profile namespace="condor" key="request_cpus" >1</profile>
         <profile namespace="condor" key="request_memory" >1 GB</profile>
-        <profile namespace="condor" key="request_disk" >10 GB</profile>
-        <profile namespace="condor" key="requirements" >regexp("stampede2.tacc.utexas.edu", TARGET.FileSystemDomain)</profile>
+        <profile namespace="condor" key="request_disk" >500 MB</profile>
         <profile namespace="condor" key="+WantSimCenterStampede2" >True</profile>
+        <profile namespace="condor" key="rank" >regexp("tacc.utexas.edu", TARGET.FileSystemDomain)</profile>
+        <!-- profile namespace="env" key="SEQEXEC_CPUS" >20</profile -->
     </site>
     
 </sitecatalog>
