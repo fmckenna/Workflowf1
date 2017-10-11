@@ -157,7 +157,7 @@ def generate_subwf(wfid, first_bid, last_bid):
     count_label_event = 0
     count_label = 0
 
-    sims_to_combine = []
+    dls_to_combine = []
     
     for building_base in range(first_bid, last_bid + 1, buildings_group_size):
    
@@ -295,8 +295,7 @@ def generate_subwf(wfid, first_bid, last_bid):
             dax.depends(parent=sam, child=simulation)
             dax.depends(parent=edp, child=simulation)
 
-            # keep track of outputs so we can combine
-            sims_to_combine.append(simulation_json)
+            
         
             ###################################################################
             # createDL
@@ -311,18 +310,22 @@ def generate_subwf(wfid, first_bid, last_bid):
             for f in task_files["DL"]:
                 dl.uses(f, link=Link.INPUT)
             dl.uses(bim_jsons[building_id], link=Link.INPUT)
-            dl.uses(edp_json, link=Link.INPUT)
+            dl.uses(simulation_json, link=Link.INPUT)
         
             # outputs
             dl_json = File("%d-DL.json" %(building_id))
             dl.uses(dl_json, link=Link.OUTPUT, transfer=False)
-        
+            
             dax.addJob(dl)
             dax.depends(parent=bim, child=dl)
-            dax.depends(parent=edp, child=dl)
+            dax.depends(parent=simulation, child=dl)
+            
+            # keep track of outputs so we can combine
+            dls_to_combine.append(dl_json)
+            
    
     # combine the outputs
-    final_out_file = combine_outputs(dax, "%06d"%(wfid), sims_to_combine, 0) 
+    final_out_file = combine_outputs(dax, "%06d"%(wfid), dls_to_combine, 0) 
     
     # Write the DAX
     f = open("%s/%06d.xml" %(run_dir, wfid), "w")
