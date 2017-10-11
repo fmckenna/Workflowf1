@@ -132,7 +132,7 @@ def combine_json_outputs( dax, prefix , outputs ):
     
     exe = Executable(name="JSON-COMBINE", arch="x86_64", installed=False)
     exe.addPFN(PFN("file://" + \
-                       top_dir + "finalProcessing/readDLs", "local"))
+                       top_dir + "/finalProcessing/readDLs", "local"))
     dax.addExecutable(exe)
     
     for chunk in output_chunks:
