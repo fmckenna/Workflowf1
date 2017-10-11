@@ -96,6 +96,52 @@ def get_building_count():
     # first line has headers
     return count - 1
 
+def add_json_combine_job(dax, prefix, chunk, job_number, start_num):
+    """
+    adds a json combine job
+     # application 1: readDLs startNum endNum Y.out
+    """
+    j = Job(name="JSON-COMBINE")
+    out_file = File("%s-combined-%d.out" %(prefix, job_number))
+    
+    j.uses(out_file, link=Link.OUTPUT, transfer=False)
+    end_num = start_num
+    for f in chunk:
+        j.uses(f, link=Link.INPUT)
+        end_num += 1
+    
+    args = "%d %d" %(start_num, end_num)
+    j.addArguments(args)
+    j.addArguments(out_file)
+    
+    dax.addJob(j)
+    return out_file
+
+
+def combine_json_outputs( dax, prefix , outputs ):
+    """
+    creates a set of jobs that combine json outputs and generate
+    csv files
+    # application 1: readDLs startNum endNum Y.out
+    """
+    max_files = 25
+    new_outputs = []
+    output_chunks = [outputs[i:i + max_files] for i in xrange(0, len(outputs), max_files)]
+    job_count = 0
+    start_num = 0
+    
+    exe = Executable(name="JSON-COMBINE", arch="x86_64", installed=False)
+    exe.addPFN(PFN("file://" + \
+                       top_dir + "finalProcessing/readDLs", "local"))
+    dax.addExecutable(exe)
+    
+    for chunk in output_chunks:
+        job_count = job_count + 1
+        f = add_json_combine_job(dax, prefix, chunk, job_count, start_num)
+        start_num += max_files
+        new_outputs.append(f)
+    return new_outputs
+
 
 def add_combine_job(dax, prefix, chunk, level, job_number, final):
     """
@@ -324,8 +370,11 @@ def generate_subwf(wfid, first_bid, last_bid):
             dls_to_combine.append(dl_json)
             
    
+    # first level of combine has to use json combine code to create csv files
+    csv_to_combine = combine_json_outputs(dax, "%06d"%(wfid), dls_to_combine) 
+    
     # combine the outputs
-    final_out_file = combine_outputs(dax, "%06d"%(wfid), dls_to_combine, 0) 
+    final_out_file = combine_outputs(dax, "%06d"%(wfid), csv_to_combine, 0) 
     
     # Write the DAX
     f = open("%s/%06d.xml" %(run_dir, wfid), "w")
