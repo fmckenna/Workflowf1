@@ -313,15 +313,20 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
 
 	    int nodeTag = this->getNode(cline,floor);	    
 
-	    string fileString;
-	    ostringstream temp;  //temp as in temporary
+        string fileString,nodestring;
+        ostringstream temp,tempnode;  //temp as in temporary
 	    temp << edpEventName << "." << type << "." << cline << "." << floor << ".out";
 	    fileString=temp.str(); 
 
 	    const char *fileName = fileString.c_str();
 	    
 	    s << "recorder Node -file " << fileName;
-	    s << " -node " << nodeTag << " -dof ";
+        for(int i=1;i<=nodeTag;i++){
+          tempnode<<i<<" ";
+        }
+        nodestring=tempnode.str();
+        const char *filenode = nodestring.c_str();
+        s << " -node " << filenode << " -dof ";
 	    for (int i=1; i<=NDF; i++)
 	      s << i << " " ;
 	    s << " disp\n";

@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 
   OpenSeesPostprocessor *thePostprocessor = new OpenSeesPostprocessor();
 
-  thePostprocessor->processResults(filenameEDP);
+  thePostprocessor->processResults(filenameEDP,filenameBIM);
 
   delete thePostprocessor;
   return 0;

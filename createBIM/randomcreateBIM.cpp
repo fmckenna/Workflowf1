@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-#include <sstream>
 
 #include "csvparser.h"
 #include <jansson.h>
@@ -13,7 +12,7 @@
 #include <sstream>
 #include <fstream>
 using namespace std;
-const char* deterStructtype(int year, int bldtypeid, int story);
+json_t * deterStructtype(int year, int bldtypeid, int story);
 const char* deteroccupancy(int building_type);
 double replacementcost(int building_type);
 
@@ -127,81 +126,75 @@ double replacementcost(int building_type){
     }
     return replacementcost;
 }
-const char* deterStructtype(int year, int bldtypeid, int story)
+json_t *deterStructtype(int year, int bldtypeid, int story)
 {
-    const char* buildingtype;
-    int structingtypeID;
-    if(year<=1990){
-        int rand_array[4]={1,7,8,9};
-        structingtypeID=rand_array[(rand() % (3-0+1))+ 0];
+    json_t *value=json_array();
+    if(year<=1900){
+        json_array_append(value, json_integer(1));
+        json_array_append(value, json_integer(7));
+        json_array_append(value, json_integer(8));
+        json_array_append(value, json_integer(9));
     }
-    else if(year>1990){
+    else if(year>1900){
         if(story<4){
-            if(bldtypeid<13){  //1-12 Residential 13-19 Commercial 20-22 Industrial 23-25 Other
-                structingtypeID=1;
+            if(bldtypeid==1||bldtypeid==2||bldtypeid==3||bldtypeid==12){
+                json_array_append(value, json_integer(1));
             }
-            else if(bldtypeid<20&&bldtypeid>12){
-                structingtypeID=(rand() % (8-1+1))+ 1; //Commercial
+            else if(bldtypeid==4||bldtypeid==5||bldtypeid==6||bldtypeid==10||bldtypeid==11||bldtypeid==13||bldtypeid==14){
+                json_array_append(value, json_integer(1));
+                json_array_append(value, json_integer(2));
+                json_array_append(value, json_integer(3));
+                json_array_append(value, json_integer(4));
+                json_array_append(value, json_integer(5));
+                json_array_append(value, json_integer(6));
+                json_array_append(value, json_integer(7));
+                json_array_append(value, json_integer(8));
             }
-            else if(bldtypeid>20&&bldtypeid<23){
-                structingtypeID=(rand() % (8-2+1))+ 2; //Industrial
+            else if(bldtypeid<10&&bldtypeid>6){
+                json_array_append(value, json_integer(2));
+                json_array_append(value, json_integer(3));
+                json_array_append(value, json_integer(4));
+                json_array_append(value, json_integer(5));
+                json_array_append(value, json_integer(6));
+                json_array_append(value, json_integer(7));
+                json_array_append(value, json_integer(8));
             }
             else {
-                structingtypeID=1;
+                json_array_append(value, json_integer(1));
             }
 
         }
         else if(story>3&&story<8){
-            if(bldtypeid<20){  //1-12 Residential 13-19 Commercial 20-22 Industrial 23-25 Other
-                structingtypeID=(rand() % (5-1+1))+ 1;//Commercial and Residential
+            if(bldtypeid<7&&bldtypeid>0||bldtypeid>9&&bldtypeid<15){
+                json_array_append(value, json_integer(1));
+                json_array_append(value, json_integer(2));
+                json_array_append(value, json_integer(3));
+                json_array_append(value, json_integer(4));
+                json_array_append(value, json_integer(5));
             }
-            else if(bldtypeid>20&&bldtypeid<23){
-                structingtypeID=(rand() % (5-2+1))+ 2; //Industrial
+            else if(bldtypeid<10&&bldtypeid>6){
+                json_array_append(value, json_integer(2));
+                json_array_append(value, json_integer(3));
+                json_array_append(value, json_integer(4));
+                json_array_append(value, json_integer(5));
             }
             else {
-                structingtypeID=(rand() % (5-1+1))+ 1;//other
+                json_array_append(value, json_integer(1));
+                json_array_append(value, json_integer(2));
+                json_array_append(value, json_integer(3));
+                json_array_append(value, json_integer(4));
+                json_array_append(value, json_integer(5));
             }
 
         }
         else {
-            structingtypeID=(rand() % (5-2+1))+ 2;//other
+            json_array_append(value, json_integer(2));
+            json_array_append(value, json_integer(3));
+            json_array_append(value, json_integer(4));
+            json_array_append(value, json_integer(5));
         }
-
-
     }
-    switch (structingtypeID) {
-    case 1:
-        buildingtype="W1";
-        break;
-    case 2:
-        buildingtype="S1";
-        break;
-    case 3:
-        buildingtype="S2";
-        break;
-    case 4:
-        buildingtype="C1";
-        break;
-    case 5:
-        buildingtype="C2";
-        break;
-    case 6:
-        buildingtype="C3";
-        break;
-    case 7:
-        buildingtype="RM1";
-        break;
-    case 8:
-        buildingtype="RM2";
-        break;
-    case 9:
-        buildingtype="URM";
-        break;
-    default:
-        break;
-    }
-
-    return buildingtype;
+    return value;
 }
 //double replacementcost(int building_type,double area)
 int main(int argc, const char **argv) {
@@ -223,7 +216,7 @@ int main(int argc, const char **argv) {
   //
   // first parse the parcel file, storing parcel location in a map
   //
-
+  string valuename[9]={"W1","S1","S2","C1","C2","C3","RM1","RM2","URM"};
   CsvParser *csvparser = CsvParser_new("parcels.csv", ",", 1);
   const CsvRow *header = CsvParser_getHeader(csvparser);
   
@@ -234,15 +227,15 @@ int main(int argc, const char **argv) {
   
   const char **headerFields = CsvParser_getFields(header);
   for (i = 0 ; i < CsvParser_getNumFields(header) ; i++) {
-    ;//    printf("TITLE: %d %s\n", i, headerFields[i]);
+    printf("TITLE: %d %s\n", i, headerFields[i]);
   }    
   CsvRow *row;
   
   while ((row = CsvParser_getRow(csvparser))) {
     const char **rowFields = CsvParser_getFields(row);
-    for (i = 0 ; i < CsvParser_getNumFields(row) ; i++) {
-      ;//   printf("FIELD: %d %s\n", i, rowFields[i]);
-    }
+    // for (i = 0 ; i < CsvParser_getNumFields(row) ; i++) {
+    //   printf("FIELD: %s\n", rowFields[i]);
+    // }
     char *pEnd;
     int parcelID = atoi(rowFields[0]);
     double x = strtod(rowFields[12],&pEnd);
@@ -267,45 +260,58 @@ int main(int argc, const char **argv) {
   
   headerFields = CsvParser_getFields(header);
   for (i = 0 ; i < CsvParser_getNumFields(header) ; i++) {
-    ; //        printf("TITLE: %d %s\n", i, headerFields[i]);
+    //      printf("TITLE: %d %s\n", i, headerFields[i]);
   }
   
-  long currentRow = 1;
+  int currentRow = 1;
   
   json_t *root = json_object();
   
   while ((row = CsvParser_getRow(csvparser))) {
     if (currentRow >= minRow && currentRow <= maxRow) {
       const char **rowFields = CsvParser_getFields(row);
-       //for (i = 0 ; i < CsvParser_getNumFields(row) ; i++) {
-      //printf("FIELD: %d %s\n", i, rowFields[i]);
-      //}
-      //string filename1;
-      //stringstream ss;
-      //ss.clear();
-      //ss.str("");
-      
       char *pEnd;
 
       json_t *GI = json_object();
+      json_t *distribution=json_array();
+      json_t *structtype = json_object();
+      json_t *height = json_object();
+      json_t *values=json_array();
+      json_t *valuenames=json_array();
+
+
       const char *name = rowFields[0];
       int numStory = atoi(rowFields[10]);
       double area=strtod(rowFields[8],&pEnd)/10.764/(double)numStory;
       if (area<=0) area=20;
       json_object_set(GI,"area",json_real(area));
       //json_object_set(GI,"structType",json_string("UNKNOWN"));
-      json_object_set(GI,"structType",json_string(deterStructtype(atoi(rowFields[11]),atoi(rowFields[2]),atoi(rowFields[10]))));
+      //json_object_set(GI,"structType",json_string(deterStructtype(atoi(rowFields[11]),atoi(rowFields[2]),atoi(rowFields[10]))));
+      json_object_set(GI,"structType",json_string("structType"));
       json_object_set(GI,"name",json_string(name));
       //json_object_set(GI,"area",json_real(strtod(rowFields[8],&pEnd)));
       json_object_set(GI,"numStory",json_integer(numStory));
       json_object_set(GI,"yearBuilt",json_integer(atoi(rowFields[11])));
+
+
+      values=deterStructtype(atoi(rowFields[11]),atoi(rowFields[2]),atoi(rowFields[10]));
+      //size_t index;
+      //json_t *value;
+      //json_array_foreach(values, index, value) {
+      //    json_array_append(valuenames, json_string(valuename[index].c_str()));
+      //}
+      for(i = 0; i < json_array_size(values); i++)
+      {
+          json_t *index = json_array_get(values, i);
+          json_array_append(valuenames, json_string(valuename[json_integer_value(index)-1].c_str()));
+      }
+
       
       // unknown
       //json_object_set(GI,"occupancy",json_string("office"));
       //deteroccupancy(atoi(rowFields[15]), buildoccupancy, replacementcost);
       json_object_set(GI,"occupancy",json_string(deteroccupancy(atoi(rowFields[15]))));
-
-      json_object_set(GI,"height",json_real(3.0*numStory));
+      json_object_set(GI,"height",json_string("height"));
       json_object_set(GI,"replacementCost",json_real(replacementcost(atoi(rowFields[15]))*strtod(rowFields[8],&pEnd)));
       json_object_set(GI,"replacementTime",json_real(180.0));
       //json_object_set(GI,"structType",json_string("C2"));
@@ -319,26 +325,32 @@ int main(int argc, const char **argv) {
 	json_object_set(location,"longitude",json_real(parcelIter->second.x));
 	json_object_set(GI,"location",location);
       }
-      
+
+      json_object_set(structtype,"distributon",json_string("discrete_design_set_integer"));
+      json_object_set(structtype,"name",json_string("structType"));
+      json_object_set(structtype,"values",values);
+      json_object_set(structtype,"valuenames",valuenames);
+
+
+      json_object_set(height,"distributon",json_string("Normal_distribution"));
+      json_object_set(height,"name",json_string("height"));
+      json_object_set(height,"mean",json_real(numStory*3.0));
+      json_object_set(height,"stdDev",json_real(0.5/double(numStory)));
+
+
+      json_array_append(distribution, structtype);
+      json_array_append(distribution, height);
+      json_object_set(GI,"randomVariables",distribution);
       json_object_set(root,"GI",GI);
       std::string filename;
       filename = "exampleBIM.json";
 
       if (argc > 1) {
-          std::ostringstream temp;
-          temp<<currentRow;
-	filename = temp.str() + std::string("-BIM.json");
+	filename = std::string(name) + std::string("-BIM.json");
       }
 	
       // write the file & clean memory
       json_dump_file(root,filename.c_str(),0);
-      
-      //opt<<parcelID<<endl;
-      //ss<<"fileBIM\\"<<parcelID<<"-BIM.json";
-      //filename1=ss.str().c_str();
-      //const char *BIMname = filename1.c_str();
-      //json_dump_file(root,BIMname,0);
-
       json_object_clear(root);
       CsvParser_destroy_row(row);
     }
