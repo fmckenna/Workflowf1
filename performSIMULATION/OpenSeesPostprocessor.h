@@ -10,12 +10,13 @@ class OpenSeesPostprocessor {
   OpenSeesPostprocessor();
   ~OpenSeesPostprocessor();
 
-  int processResults(const char *EDP);
+  int processResults(const char *BIM, const char *EDP);
 
   int processEDPs();
 
  private:
   char *filenameEDP;
+  char *filenameBIM;
 
   json_t *rootEDP;
 };

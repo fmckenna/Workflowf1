@@ -2,12 +2,13 @@
 #include "OpenSeesPostprocessor.h"
 #include <jansson.h> 
 #include <string.h>
+#include <math.h>
 #include <string>
 #include <sstream>
 #include <vector>
 
 OpenSeesPostprocessor::OpenSeesPostprocessor()
-  :filenameEDP(0)
+  :filenameEDP(0), filenameBIM(0)
 {
 
 }
@@ -15,10 +16,12 @@ OpenSeesPostprocessor::OpenSeesPostprocessor()
 OpenSeesPostprocessor::~OpenSeesPostprocessor(){
   if (filenameEDP != 0)
     delete [] filenameEDP;
+  if (filenameBIM != 0)
+    delete [] filenameBIM;
 }
 
 int 
-OpenSeesPostprocessor::processResults(const char *EDP)
+OpenSeesPostprocessor::processResults(const char *BIM, const char *EDP)
 {
   //
   // make copies of filenames in case methods need them
@@ -26,9 +29,13 @@ OpenSeesPostprocessor::processResults(const char *EDP)
   
   if (filenameEDP != 0)
     delete [] filenameEDP;
+  if (filenameBIM != 0)
+    delete [] filenameBIM;
 
   filenameEDP=(char*)malloc((strlen(EDP)+1)*sizeof(char));
   strcpy(filenameEDP,EDP);
+  filenameBIM=(char*)malloc((strlen(BIM)+1)*sizeof(char));
+  strcpy(filenameBIM,BIM);
 
   json_error_t error;
   rootEDP = json_load_file(filenameEDP, 0, &error);
@@ -84,7 +91,7 @@ OpenSeesPostprocessor::processEDPs(){
 	  
 	  string fileString;
 	  ostringstream temp;  //temp as in temporary
-	  temp << edpEventName << "." << type << "." << cline << "." << floor << ".out";
+	  temp << filenameBIM << edpEventName << "." << type << "." << cline << "." << floor << ".out";
 	  fileString=temp.str(); 
 
 	  const char *fileName = fileString.c_str();
@@ -92,40 +99,66 @@ OpenSeesPostprocessor::processEDPs(){
 	  // openfile & process data
 	  ifstream myfile;
 	  myfile.open (fileName);
-	  double absMin, absMax, absValue;
+	  double abs1Min, abs1Max, abs1Value;
+	  double abs2Min, abs2Max, abs2Value;
 
 	  if (myfile.is_open()) {
-	    myfile >> absMin >> absMax >> absValue;
-	    printf("%f %f %f\n",absMin,absMax, absValue);
+	    myfile >> abs1Min >> abs2Min >> abs1Max >> abs2Max >> abs1Value >> abs2Value;
+	    printf("%f %f\n",abs1Value, abs2Value);
 	    myfile.close();
 	  }
-	  
-	  json_object_set(response,"scalar_data",json_real(absValue));
+	  if (abs2Value > abs1Value)
+	    abs1Value = abs2Value;
+
+	  json_object_set(response,"scalar_data",json_real(abs2Value));
 
 	} else if (strcmp(type,"max_drift") == 0) {
-	    int cline = json_integer_value(json_object_get(response, "cline"));
-	    int floor1 = json_integer_value(json_object_get(response, "floor1"));
-	    int floor2 = json_integer_value(json_object_get(response, "floor1"));
 
-	    string fileString;
-	    ostringstream temp;  //temp as in temporary
-	    temp << edpEventName << "." << type << "." << cline << "." 
-		 << floor1 << "." << floor2 << ".out";
-	    fileString=temp.str(); 
+	  int cline = json_integer_value(json_object_get(response, "cline"));
+	  int floor1 = json_integer_value(json_object_get(response, "floor1"));
+	  int floor2 = json_integer_value(json_object_get(response, "floor2"));
 
-	    const char *fileName = fileString.c_str();
+	  //
+	  string fileString1;
+	  ostringstream temp1;  //temp as in temporary
+	  temp1 << filenameBIM << edpEventName << "." << type << "." << cline << "." 
+		<< floor1 << "." << floor2 << "-1.out";
+	  fileString1=temp1.str(); 
 
-	    // openfile & process data
-	    ifstream myfile;
-	    myfile.open (fileName);
-	    double absMin, absMax, absValue;
+	  const char *fileName1 = fileString1.c_str();
 
-	    if (myfile.is_open()) {
-	      myfile >> absMin >> absMax >> absValue;
-	      printf("%f %f %f\n",absMin,absMax, absValue);
-	      myfile.close();
-	    }
-	    json_object_set(response,"scalar_data",json_real(absValue));
+	  // openfile & process data
+	  ifstream myfile;
+	  myfile.open (fileName1);
+	  double absMin, absMax, absValue;
+	  
+	  absValue = 0.0;
+	  if (myfile.is_open()) {
+	    myfile >> absMin >> absMax >> absValue;
+	    myfile.close();
+	  } 
+
+	  //
+	  string fileString2;
+	  ostringstream temp2;  //temp as in temporary
+	  temp2 << filenameBIM << edpEventName << "." << type << "." << cline << "." 
+		<< floor1 << "." << floor2 << "-2.out";
+	  fileString2=temp2.str(); 
+
+	  const char *fileName2 = fileString2.c_str();
+
+	  // openfile & process data
+	  myfile.open (fileName2);
+	  
+	  if (myfile.is_open()) {
+	    myfile >> absMin >> absMax >> absMax;
+	    myfile.close();
+	  } 
+	    
+	  if (absMax > absValue)
+	    absValue = absMax;
+
+	  json_object_set(response,"scalar_data",json_real(absValue));
 	}
 
 	else if (strcmp(type,"residual_disp") == 0) {
@@ -134,7 +167,7 @@ OpenSeesPostprocessor::processEDPs(){
 	  
 	  string fileString;
 	  ostringstream temp;  //temp as in temporary
-	  temp << edpEventName << "." << type << "." << cline << "." << floor << ".out";
+	  temp << filenameBIM << edpEventName << "." << type << "." << cline << "." << floor << ".out";
 	  fileString=temp.str(); 
 
 	  const char *fileName = fileString.c_str();
@@ -142,15 +175,22 @@ OpenSeesPostprocessor::processEDPs(){
 	  // openfile & process data
 	  ifstream myfile;
 	  myfile.open (fileName);
-	  double num = 0.0;
+	  double num1 = 0.; 
+	  double num2 = 0.;
+	  double num = 0.;
+
 	  if (myfile.is_open()) {
-	    std::vector<double> scores;
+	    //	    std::vector<double> scores;
 	    //keep storing values from the text file so long as data exists:
-	    while (myfile >> num) {
-	      scores.push_back(num);
+	    while (myfile >> num1 >> num2) {
+	      //	      scores.push_back(num);
 	    }
 	    
 	    // need to process to get the right value, for now just output last
+	    num = fabs(num1);
+	    if (fabs(num2) > num)
+	      num = fabs(num2);
+
 	    myfile.close();
 	  }
 	  

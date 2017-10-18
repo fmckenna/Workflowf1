@@ -55,11 +55,13 @@ OpenSeesPreprocessor::createInputFile(const char *BIM,
   filenameEVENT=(char*)malloc((strlen(EVENT)+1)*sizeof(char));
   filenameEDP=(char*)malloc((strlen(EDP)+1)*sizeof(char));
   filenameTCL=(char*)malloc((strlen(tcl)+1)*sizeof(char));
+
   strcpy(filenameBIM,BIM);
   strcpy(filenameSAM,SAM);
   strcpy(filenameEVENT,EVENT);
   strcpy(filenameEDP,EDP);
   strcpy(filenameTCL,tcl);
+
 
   //
   // open tcl script
@@ -147,6 +149,7 @@ OpenSeesPreprocessor::processNodes(ofstream &s){
   NDF = 0;
 
   json_array_foreach(nodes, index, node) {
+
     int tag = json_integer_value(json_object_get(node,"name"));
     json_t *crds = json_object_get(node,"crd");
     int sizeCRD = json_array_size(crds);
@@ -270,7 +273,7 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
 	    //	    std::ostringstream fileString(string(edpEventName)+string(type));
 	    string fileString;
 	    ostringstream temp;  //temp as in temporary
-	    temp << edpEventName << "." << type << "." << cline << "." << floor << ".out";
+	    temp << filenameBIM << edpEventName << "." << type << "." << cline << "." << floor << ".out";
 	    fileString=temp.str(); 
 
 	    const char *fileName = fileString.c_str();
@@ -294,16 +297,25 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
 	    int nodeTag1 = this->getNode(cline,floor1);	    
 	    int nodeTag2 = this->getNode(cline,floor2);	    
 
-	    string fileString;
-	    ostringstream temp;  //temp as in temporary
-	    temp << edpEventName << "." << type << "." << cline << "." << floor1 << "." << floor2 << ".out";
-	    fileString=temp.str(); 
+	    string fileString1;
+	    string fileString2;
+	    ostringstream temp1;  //temp as in temporary
+	    ostringstream temp2;  //temp as in temporary
+	    temp1 << filenameBIM << edpEventName << "." << type << "." << cline << "." << floor1 << "." << floor2 << "-1.out";
+	    temp2 << filenameBIM << edpEventName << "." << type << "." << cline << "." << floor1 << "." << floor2 << "-2.out";
+	    fileString1=temp1.str(); 
+	    fileString2=temp2.str(); 
 
-	    const char *fileName = fileString.c_str();
+	    const char *fileName1 = fileString1.c_str();
+	    const char *fileName2 = fileString2.c_str();
 	    
-	    s << "recorder EnvelopeDrift -file " << fileName;
+	    s << "recorder EnvelopeDrift -file " << fileName1;
 	    s << " -iNode " << nodeTag1 << " -jNode " << nodeTag2;
-	    s << " -perpDirn 1\n";
+	    s << " -dof 1 -perpDirn 1\n";
+
+	    s << "recorder EnvelopeDrift -file " << fileName2;
+	    s << " -iNode " << nodeTag1 << " -jNode " << nodeTag2;
+	    s << " -dof 2 -perpDirn 1\n";
 	  }
 
 	  else if (strcmp(type,"residual_disp") == 0) {
@@ -315,7 +327,7 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
 
 	    string fileString;
 	    ostringstream temp;  //temp as in temporary
-	    temp << edpEventName << "." << type << "." << cline << "." << floor << ".out";
+	    temp << filenameBIM << edpEventName << "." << type << "." << cline << "." << floor << ".out";
 	    fileString=temp.str(); 
 
 	    const char *fileName = fileString.c_str();
