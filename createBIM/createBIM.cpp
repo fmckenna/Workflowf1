@@ -217,6 +217,7 @@ int main(int argc, const char **argv) {
 
   std::map<int, locations> parcelLocations;
   std::map<int, locations>::iterator parcelIter;
+
   //ofstream opt("ID.txt");
   //system("md fileBIM");
   //
