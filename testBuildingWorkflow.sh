@@ -1,11 +1,24 @@
 #!/bin/bash
 
+if [ $# -eq 0 ]
+  then
+    building=0;
+  else
+    building=$1
+fi
+
 make
+
 cd createBIM
 rm *.json
-./createBIM 
+if [ $building -eq 0 ]
+  then
+    ./createBIM 
+  else
+    ./createBIM $1 $1
+    cp $1-BIM.json exampleBIM.json
+fi
 cd ..
-
 
 cd createEVENT
 rm example*.json
