@@ -44,6 +44,7 @@ Building::StruType Building::s2StruType(string s)
     if(s=="MH")
         return MH;
 
+    cout<<"\nWarning: unknown structural type of building "<<this->name<<endl;
     return UNKNOWN;
 }
 
@@ -53,21 +54,22 @@ Building::BldgOccupancy Building::s2BldgOccupancy(string s)
 
     if(s=="office")
         return office;
-    if(s=="education")
+    if(s=="education"||s=="school")
         return education;
     if(s=="healthcare")
         return healthcare;
-    if(s=="hospitality")
+    if(s=="hospitality"||s=="hotel")
         return hospitality;
-    if(s=="residence")
+    if(s=="residence"||s=="residential")
         return residence;
     if(s=="retail")
         return retail;
-    if(s=="warehouse")
+    if(s=="warehouse"||s=="industrial")
         return warehouse;
     if(s=="research")
         return research;
 
+    cout<<"\nWarning: unknown occupancy of building "<<this->name<<endl;
     return unknown;
 }
 
@@ -87,6 +89,8 @@ void Building::readBIM(const char *path)
     json_t *oType = json_object_get(GI,"occupancy");
     json_t *rType = json_object_get(GI,"replacementCost");
     json_t *tType = json_object_get(GI,"replacementTime");
+
+    name=json_string_value(json_object_get(GI,"name"));
 
     const char *type = json_string_value(sType);
     string s(type);
