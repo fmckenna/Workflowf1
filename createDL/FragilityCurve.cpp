@@ -133,6 +133,7 @@ FragilityCurve::ComponentType FragilityCurve::JudgeComponentType()
 
 FragilityCurve::DamageState FragilityCurve::_SetDamageState(XMLElement * dsNode)
 {
+    const double inflation_rate=0.969;  //adjust the 2011 US$ into 2010 value. http://www.usinflationcalculator.com/
     DamageState ds;
     ds.percent=toDoubleofXML(dsNode,"Percent");
     const char *tag=dsNode->FirstChildElement( "ConsequenceGroup" )->FirstChildElement("TagState")->GetText();
@@ -144,9 +145,9 @@ FragilityCurve::DamageState FragilityCurve::_SetDamageState(XMLElement * dsNode)
     ds.redTagBeta=toDoubleofXML(dsNode->FirstChildElement( "ConsequenceGroup" ),"RedTagBeta");
     XMLElement * cost = dsNode->FirstChildElement( "ConsequenceGroup" )->FirstChildElement( "CostConsequence" );
     ds.cost.lowerQuantity=toDoubleofXML(cost,"LowerQuantity");
-    ds.cost.maxAmount=toDoubleofXML(cost,"MaxAmount");
+    ds.cost.maxAmount=toDoubleofXML(cost,"MaxAmount")*inflation_rate;
     ds.cost.upperQuantity=toDoubleofXML(cost,"UpperQuantity");
-    ds.cost.minAmount=toDoubleofXML(cost,"MinAmount");
+    ds.cost.minAmount=toDoubleofXML(cost,"MinAmount")*inflation_rate;
     ds.cost.uncertainty=toDoubleofXML(cost,"Uncertainty");
     const char *text=cost->FirstChildElement("CurveType")->GetText();
     if(!strncmp(text,"Normal",6))
