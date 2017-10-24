@@ -344,6 +344,9 @@ OpenSeesPreprocessor::processEvents(ofstream &s){
 
     // create analysis
     if (analysisType == 1) {
+      //      s << "handler Plain\n";
+      s << "numberer RCM\n";
+      s << "system BandGen\n";
       s << "analysis Transient\n";
       s << "analyze " << numSteps << " " << dT << "\n";
     }
