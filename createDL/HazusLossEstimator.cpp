@@ -19,8 +19,8 @@ HazusLossEstimator::HazusLossEstimator()
 }
 
 int HazusLossEstimator::determineLOSS(const char *filenameBIM,
-				 const char *filenameEDP,
-				 const char *filenameLOSS)
+				      const char *filenameEDP,
+				      const char *filenameLOSS)
 {
     Building * bldg= new Building();
     bldg->readBIM(filenameBIM);
@@ -44,6 +44,8 @@ int HazusLossEstimator::determineLOSS(const char *filenameBIM,
         json_object_set(tag,"Tag",json_string("none"));
     json_object_set(tag,"RedTagProbability",json_real(bldg->redTagProb));
     json_object_set(root,"UnsafePlacards",tag);
+    json_object_set(root,"Name",json_string(bldg->name.c_str()));
+
     json_dump_file(root,filenameLOSS,0);
     json_object_clear(root);
 
