@@ -47,6 +47,7 @@ public:
     double area;		//story area. unit: m^2
     double replacementCost;	//unit: $
     double replacementTime; //unit: day
+    int workers;    //number of workers to repair the building.
 
 
     //==========economic loss===============================

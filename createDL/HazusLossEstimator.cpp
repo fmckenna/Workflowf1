@@ -242,6 +242,31 @@ void HazusLossEstimator::_GenRealizations(Building *bldg)
             bldg->components[i][j].downtime.resize(nor);
         }
     }
+
+    bldg->workers=(int)(bldg->area*this->max_worker_per_square_meter);
+    if(bldg->occupancy==Building::residence && bldg->nStory<=2)    //single family house
+        bldg->workers=(int)(bldg->area*0.003)+1;
+    if(bldg->replacementTime<=0)
+        _AutoCalcTotalDowntime(bldg);
+}
+
+void HazusLossEstimator::_AutoCalcTotalDowntime(Building *bldg)
+{
+    bldg->replacementTime=0;
+    for (int i=0;i<=bldg->nStory;++i)
+    {
+        double currFloorDowntime=0.0;
+        for(unsigned int j=0;j<bldg->components[i].size();++j)
+        {
+            const FragilityCurve * fc=&fragilityLib[bldg->components[i][j].ID];
+            double unitDowntime=fc->dsGroups.back().dstates.back().time.maxAmount;
+            double currPGDowntime=unitDowntime*bldg->components[i][j].qmedian;
+            currPGDowntime=currPGDowntime/bldg->workers;
+            currFloorDowntime+=currPGDowntime;
+        }
+        if(bldg->replacementTime<currFloorDowntime)
+            bldg->replacementTime=currFloorDowntime;
+    }
 }
 
 void HazusLossEstimator::_AutoGenComponents(Building *bldg)
@@ -366,7 +391,7 @@ void HazusLossEstimator::_CalcBldgConseqScenario(Building *bldg)
                 double currPGLoss=bldg->components[i][j].loss[currRealization];
                 bldg->totalLoss[currRealization]+=currPGLoss;
                 double currPGDowntime=bldg->components[i][j].downtime[currRealization];
-                currPGDowntime=currPGDowntime/(bldg->area*this->max_worker_per_square_meter);
+                currPGDowntime=currPGDowntime/bldg->workers;
                 currFloorDowntime+=currPGDowntime;
             }
             if(bldg->totalDowntime[currRealization]<currFloorDowntime)
