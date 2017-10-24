@@ -43,12 +43,22 @@ rm example*.json
 rm *.out
 cp ../createEDP/example*.json ./
 ./performSimulation.sh exampleBIM.json exampleSAM.json exampleEVENT.json exampleEDP.json
+rm *.out
 cd ..
 
 cd createDL
 rm example*.json
 cp ../performSIMULATION/exampleBIM.json ./
 cp ../performSIMULATION/exampleEDP.json ./
-./createLOSS exampleBIM.json exampleEDP.json exampleLOSS.json
+./createLOSS exampleBIM.json exampleEDP.json exampleDL.json
+cat exampleDL.json
+cd ..
 
-cat exampleLOSS.json
+
+cd finalProcessing
+rm *.json
+cp ../createDL/exampleDL.json ./$1-DL.json
+./readDLs $1 $1 test
+cat test
+rm test *.json
+
