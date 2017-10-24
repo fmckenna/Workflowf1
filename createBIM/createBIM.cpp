@@ -312,7 +312,7 @@ int main(int argc, const char **argv) {
       //deteroccupancy(atoi(rowFields[15]), buildoccupancy, replacementcost);
       json_object_set(GI,"occupancy",json_string(deteroccupancy(atoi(rowFields[15]))));
       json_object_set(GI,"height",json_real(3.0*numStory));
-      json_object_set(GI,"replacementCost",json_real(replacementcost(atoi(rowFields[15]))*strtod(rowFields[8],&pEnd)));
+      json_object_set(GI,"replacementCost",json_real(replacementcost(atoi(rowFields[15]))*area));
       json_object_set(GI,"replacementTime",json_real(180.0));
       //json_object_set(GI,"structType",json_string("C2"));
       
