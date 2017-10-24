@@ -12,6 +12,9 @@
 #include <sstream>
 #include <fstream>
 using namespace std;
+
+#define SSTR( x) static_cast< std::ostringstream &>(( std::ostringstream() << std::dec << x ) ).str()
+
 const char* deterStructtype(int year, int bldtypeid, int story);
 const char* deteroccupancy(int building_type);
 double replacementcost(int building_type);
@@ -282,6 +285,12 @@ int main(int argc, const char **argv) {
 
       json_t *GI = json_object();
       const char *name = rowFields[0];
+      int nameNumber = atoi(name);
+      if (nameNumber != currentRow) {
+	printf("%s %d %d\n",name,nameNumber,currentRow);
+	//	return 0;
+      }
+
       int numStory = atoi(rowFields[10]);
 
       double area=strtod(rowFields[8],&pEnd)/10.764/(double)numStory;
@@ -320,9 +329,11 @@ int main(int argc, const char **argv) {
       json_object_set(root,"GI",GI);
       std::string filename;
       filename = "exampleBIM.json";
-
+      printf("%s",filename.c_str());
       if (argc > 1) {
-	filename = std::string(name) + std::string("-BIM.json");
+	filename = SSTR(currentRow) + std::string("-BIM.json");
+	//	filename = std::string(name) + std::string("-BIM.json");
+	printf("%s",filename.c_str());
       }
 	
       // write the file & clean memory
