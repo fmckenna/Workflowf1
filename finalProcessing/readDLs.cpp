@@ -26,7 +26,6 @@ int main(int argc, char **argv) {
     
   for (int i=minRow; i<=maxRow; i++) {
     string inputFilename = to_string(i) + "-DL.json";
-
     // now parse the DL file for the building
     //
     
@@ -34,7 +33,7 @@ int main(int argc, char **argv) {
     json_t *root = json_load_file(inputFilename.c_str(), 0, &error);
     
     if(!root) {
-      output << "0,0,none,0\n";
+      output << "0,\"UNKNOWN\",0,0,0,0,0\n";
     } else {
 
       double loss = 0.;
