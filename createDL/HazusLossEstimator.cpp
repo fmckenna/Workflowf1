@@ -29,10 +29,17 @@ int HazusLossEstimator::determineLOSS(const char *filenameBIM,
     _GenRealizations(bldg);
     _CalcBldgConseqScenario(bldg);
 
+
     double lossratio=bldg->totalLossMedian/bldg->replacementCost;
     json_t *root = json_object();
     json_t *dl = json_object();
     json_object_set(dl,"MedianLossRatio",json_real(lossratio));
+    json_object_set(dl,"MedianRepairCost",json_real(bldg->totalLossMedian));
+    json_object_set(dl,"MeanRepairCost",json_real(stat->getMean(bldg->totalLoss)));
+    json_object_set(dl,"StdRepairCost",json_real(stat->getStd(bldg->totalLoss)));
+    json_object_set(dl,"10PercentileLoss",json_real(stat->getPercentile(bldg->totalLoss,10)));
+    json_object_set(dl,"90PercentileLoss",json_real(stat->getPercentile(bldg->totalLoss,90)));
+
     json_object_set(root,"EconomicLoss",dl);
     json_t *downtime = json_object();
     json_object_set(downtime,"MedianDowntime",json_real(bldg->totalDowntimeMedian));
@@ -44,7 +51,10 @@ int HazusLossEstimator::determineLOSS(const char *filenameBIM,
         json_object_set(tag,"Tag",json_string("none"));
     json_object_set(tag,"RedTagProbability",json_real(bldg->redTagProb));
     json_object_set(root,"UnsafePlacards",tag);
+
+
     json_object_set(root,"Name",json_string(bldg->name.c_str()));
+    json_object_set(root,"MaxPGA",json_real(bldg->edp.PFA[0]));
 
     json_dump_file(root,filenameLOSS,0);
     json_object_clear(root);
