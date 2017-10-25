@@ -16,7 +16,7 @@
         <profile namespace="condor" key="request_cpus" >1</profile>
         <profile namespace="condor" key="request_memory" >1 GB</profile>
         <profile namespace="condor" key="request_disk" >500 MB</profile>
-        <profile namespace="condor" key="+WantSimCenterStampede2" >True</profile>
+        <profile namespace="condor" key="+WantSimCenterTACC" >True</profile>
         <profile namespace="condor" key="rank" >regexp("tacc.utexas.edu", TARGET.FileSystemDomain)</profile>
         <!-- profile namespace="env" key="SEQEXEC_CPUS" >20</profile -->
     </site>

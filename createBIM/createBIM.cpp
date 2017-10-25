@@ -331,9 +331,9 @@ int main(int argc, const char **argv) {
       filename = "exampleBIM.json";
       printf("%s",filename.c_str());
       if (argc > 1) {
-	filename = SSTR(currentRow) + std::string("-BIM.json");
-	//	filename = std::string(name) + std::string("-BIM.json");
-	printf("%s",filename.c_str());
+          std::ostringstream temp;
+          temp<<currentRow;
+          filename = temp.str() + std::string("-BIM.json");
       }
 	
       // write the file & clean memory

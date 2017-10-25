@@ -9,6 +9,7 @@ using namespace std;
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <jansson.h>     // for writing json
 #include <nanoflann.hpp> // for searching for nearest point

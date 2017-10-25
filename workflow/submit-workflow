@@ -27,20 +27,19 @@ def add_executables(dax):
         exe.addPFN(PFN("file://" + \
                        top_dir + "/workflow/wrappers/" + exe_name, "local"))
     
-        if exe_name == "MOTIONS":
-            exe.addProfile(Profile(Namespace.CONDOR, 
-                           key="requirements",
-                           value="Machine == \"workflow.isi.edu\""))
-        elif exe_name == "BIM":
+        if exe_name == "BIM":
             # BIM requires some extra memory
             exe.addProfile(Profile(Namespace.CONDOR, 
                                    key="request_memory",
                                    value="3 GB"))
         elif exe_name == "EVENT":
-            # BIM requires some extra memory
+            # EVENT requires some extra disk
             exe.addProfile(Profile(Namespace.CONDOR, 
                                    key="request_disk",
-                                   value="10 GB"))
+                                   value="30 GB"))
+            exe.addProfile(Profile(Namespace.CONDOR, 
+                                   key="rank",
+                                   value="regexp(\"isi.edu\", TARGET.FileSystemDomain)"))
         dax.addExecutable(exe)
 
 
@@ -104,11 +103,22 @@ def add_json_combine_job(dax, prefix, chunk, job_number, start_num):
     j = Job(name="JSON-COMBINE")
     out_file = File("%s-combined-%d.out" %(prefix, job_number))
     
-    j.uses(out_file, link=Link.OUTPUT, transfer=False)
-    end_num = start_num
+    j.uses(out_file, link=Link.OUTPUT, transfer=False, register=False)
+    end_num = start_num - 1
+
     for f in chunk:
         j.uses(f, link=Link.INPUT)
         end_num += 1
+
+    # sanity check - make sure start and end bids match the chunk
+    if chunk[0].name != "%d-DL.json"%(start_num):
+        print("ERROR: Chunk start mismatch %s != %d-DL.json" %(chunk[0].name, start_num))
+        print(chunk[0].name, chunk[-1].name)
+        sys.exit(1)
+    if chunk[-1].name != "%d-DL.json"%(end_num):
+        print("ERROR: Chunk end mismatch %s != %d-DL.json" %(chunk[-1].name, end_num))
+        print(chunk[0].name, chunk[-1].name)
+        sys.exit(1)
     
     args = "%d %d" %(start_num, end_num)
     j.addArguments(args)
@@ -118,7 +128,7 @@ def add_json_combine_job(dax, prefix, chunk, job_number, start_num):
     return out_file
 
 
-def combine_json_outputs( dax, prefix , outputs ):
+def combine_json_outputs(dax, prefix, first_bid, outputs):
     """
     creates a set of jobs that combine json outputs and generate
     csv files
@@ -128,11 +138,10 @@ def combine_json_outputs( dax, prefix , outputs ):
     new_outputs = []
     output_chunks = [outputs[i:i + max_files] for i in xrange(0, len(outputs), max_files)]
     job_count = 0
-    start_num = 0
+    start_num = first_bid
     
     exe = Executable(name="JSON-COMBINE", arch="x86_64", installed=False)
-    exe.addPFN(PFN("file://" + \
-                       top_dir + "/finalProcessing/readDLs", "local"))
+    exe.addPFN(PFN("file://" +  top_dir + "/finalProcessing/readDLs", "local"))
     dax.addExecutable(exe)
     
     for chunk in output_chunks:
@@ -151,7 +160,7 @@ def add_combine_job(dax, prefix, chunk, level, job_number, final):
     out_file = File("%s-combined-%d-%d" %(prefix, level, job_number))
     if final:
         out_file = File(prefix + "-combined")
-    j.uses(out_file, link=Link.OUTPUT, transfer=final)
+    j.uses(out_file, link=Link.OUTPUT, transfer=final, register=final)
     j.addArguments(out_file)
     for f in chunk:
         j.uses(f, link=Link.INPUT)
@@ -193,11 +202,8 @@ def generate_subwf(wfid, first_bid, last_bid):
 
     add_executables(dax)
     
-    # input from top level wf
-    motions_tar = File("motions.tar.gz")
-    
     # how many buildings to group together
-    buildings_group_size = 200
+    buildings_group_size = 500
         
     count = 0
     count_label_event = 0
@@ -226,7 +232,7 @@ def generate_subwf(wfid, first_bid, last_bid):
         bim_jsons = {}
         for i in range(building_base, inner_last_bid + 1):
             bim_json = File("%d-BIM.json" %(i))
-            bim.uses(bim_json, link=Link.OUTPUT, transfer=False)
+            bim.uses(bim_json, link=Link.OUTPUT, transfer=False, register=False)
             bim_jsons[i] = bim_json
     
         dax.addJob(bim)
@@ -236,14 +242,14 @@ def generate_subwf(wfid, first_bid, last_bid):
             # label based clustering - these tasks are so short we want to
             # bundle a bunch of buildings together, but only 50 buildings
             # at the time
-            count += 1
-            if count % 200 == 0:
+            if count % 2000 == 0:
                 count_label_event += 1
-            if count % 50 == 0:
+            if count % 100 == 0:
                 count_label += 1
             label_event = "event%05d" %(count_label_event)
             label = "sim%05d" %(count_label)
    
+            count += 1
     
             ###################################################################
             # createEvent
@@ -251,17 +257,18 @@ def generate_subwf(wfid, first_bid, last_bid):
             event = Job(name="EVENT")
             event.profile(namespace="pegasus", key="label", value=label_event)
             add_task_files(task_files, dax, event, "createEVENT", top_dir + "/createEVENT")
+            add_task_files(task_files, dax, event, "HFmeta", top_dir + "/createEVENT")
+            add_task_files(task_files, dax, event, "motions.tar.gz", top_dir + "/workflow/inputs")
             event.addArguments(str(building_id))
         
             # inputs
             for f in task_files["EVENT"]:
                 event.uses(f, link=Link.INPUT)
             event.uses(bim_jsons[building_id], link=Link.INPUT)
-            event.uses(motions_tar, link=Link.INPUT)
         
             # outputs
             event_json = File("%d-EVENT.json" %(building_id))
-            event.uses(event_json, link=Link.OUTPUT, transfer=False)
+            event.uses(event_json, link=Link.OUTPUT, transfer=False, register=False)
         
             dax.addJob(event)
             dax.depends(parent=bim, child=event)
@@ -283,7 +290,7 @@ def generate_subwf(wfid, first_bid, last_bid):
         
             # outputs
             sam_json = File("%d-SAM.json" %(building_id))
-            sam.uses(sam_json, link=Link.OUTPUT, transfer=False)
+            sam.uses(sam_json, link=Link.OUTPUT, transfer=False, register=False)
         
             dax.addJob(sam)
             dax.depends(parent=bim, child=sam)
@@ -306,7 +313,7 @@ def generate_subwf(wfid, first_bid, last_bid):
         
             # outputs
             edp_json = File("%d-EDP.json" %(building_id))
-            edp.uses(edp_json, link=Link.OUTPUT, transfer=False)
+            edp.uses(edp_json, link=Link.OUTPUT, transfer=False, register=False)
         
             dax.addJob(edp)
             dax.depends(parent=bim, child=edp)
@@ -333,7 +340,7 @@ def generate_subwf(wfid, first_bid, last_bid):
         
             # outputs
             simulation_json = File("%d-SIMULATION.json" %(building_id))
-            simulation.uses(simulation_json, link=Link.OUTPUT, transfer=False)
+            simulation.uses(simulation_json, link=Link.OUTPUT, transfer=False, register=False)
         
             dax.addJob(simulation)
             dax.depends(parent=bim, child=simulation)
@@ -360,7 +367,7 @@ def generate_subwf(wfid, first_bid, last_bid):
         
             # outputs
             dl_json = File("%d-DL.json" %(building_id))
-            dl.uses(dl_json, link=Link.OUTPUT, transfer=False)
+            dl.uses(dl_json, link=Link.OUTPUT, transfer=False, register=False)
             
             dax.addJob(dl)
             dax.depends(parent=bim, child=dl)
@@ -371,8 +378,8 @@ def generate_subwf(wfid, first_bid, last_bid):
             
    
     # first level of combine has to use json combine code to create csv files
-    csv_to_combine = combine_json_outputs(dax, "%06d"%(wfid), dls_to_combine) 
-    
+    csv_to_combine = combine_json_outputs(dax, "%06d"%(wfid), first_bid, dls_to_combine) 
+
     # combine the outputs
     final_out_file = combine_outputs(dax, "%06d"%(wfid), csv_to_combine, 0) 
     
@@ -447,8 +454,7 @@ f.close()
 cmd = "pegasus-db-admin create sqlite:///" + run_dir + "/pegasus.sqlite"
 call(cmd, shell=True)
 
-#buildings_total = get_building_count()
-buildings_total = 1000
+buildings_total = get_building_count()
 buildings_per_subwf = 50000
 
 print("Generating a hierarchical workflow for %d buildings..." %(buildings_total))
@@ -466,23 +472,6 @@ dax.invoke('all',  email_cmd)
 add_executables(dax)
 
 task_files = {}
-
-###################################################################
-# motions
-
-motions = Job(name="MOTIONS")
-add_task_files(task_files, dax, motions, "processSAC_Files.py", top_dir + "/processSW4")
-add_task_files(task_files, dax, motions, "HF_M7.0_3DTOPO_H=15MR_sac.tar.gz", top_dir + "/workflow/inputs")
-
-# inputs
-for f in task_files["MOTIONS"]:
-    motions.uses(f, link=Link.INPUT)
-
-# outputs
-motions_tar = File("motions.tar.gz")
-motions.uses(motions_tar, link=Link.OUTPUT, transfer=True)
-
-dax.addJob(motions)
 
 subwfs = []
 subwf_id = 1
@@ -509,7 +498,6 @@ for subwf_first_id in range(1, buildings_total + 1, buildings_per_subwf):
                      "--cleanup", "none",
                      "--force")
     dax.addDAX(job)
-    dax.depends(parent=motions, child=job)
 
     subwfs.append(job)
 
