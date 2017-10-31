@@ -256,13 +256,14 @@ void HazusLossEstimator::_GenRealizations(Building *bldg)
     bldg->workers=(int)(bldg->area*this->max_worker_per_square_meter);
     if(bldg->occupancy==Building::residence && bldg->nStory<=2)    //single family house
         bldg->workers=(int)(bldg->area*0.003)+1;
-    if(bldg->replacementTime<=0)
-        _AutoCalcTotalDowntime(bldg);
+    //if(bldg->replacementTime<=0)
+        _AutoCalcTotalValueAndDowntime(bldg);
 }
 
-void HazusLossEstimator::_AutoCalcTotalDowntime(Building *bldg)
+void HazusLossEstimator::_AutoCalcTotalValueAndDowntime(Building *bldg)
 {
     bldg->replacementTime=0;
+    bldg->replacementCost=0.0;
     for (int i=0;i<=bldg->nStory;++i)
     {
         double currFloorDowntime=0.0;
@@ -271,6 +272,9 @@ void HazusLossEstimator::_AutoCalcTotalDowntime(Building *bldg)
             const FragilityCurve * fc=&fragilityLib[bldg->components[i][j].ID];
             double unitDowntime=fc->dsGroups.back().dstates.back().time.maxAmount;
             double currPGDowntime=unitDowntime*bldg->components[i][j].qmedian;
+            double unitCost=fc->dsGroups.back().dstates.back().cost.maxAmount;
+            bldg->replacementCost+=unitCost*bldg->components[i][j].qmedian;
+            cout<<"\n"<<bldg->components[i][j].ID<<"\t"<<unitCost*bldg->components[i][j].qmedian;
             currPGDowntime=currPGDowntime/bldg->workers;
             currFloorDowntime+=currPGDowntime;
         }
@@ -295,7 +299,7 @@ void HazusLossEstimator::_AutoGenComponents(Building *bldg)
         }
         else if(cmp.ID=="B1071.001")    //TODO lack of statistics
         {
-            cmp.qmedian=q*sqrt(bldg->area)*4.0*bldg->storyheight/it->second.unit;
+            cmp.qmedian=q*sqrt(bldg->area)*2.0*bldg->storyheight/it->second.unit;
         }
         else
         {

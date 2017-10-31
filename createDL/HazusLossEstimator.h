@@ -53,7 +53,7 @@ private:
     int _Init();
     int _LoadNormativeQty();    //Load normativeQtyLib
 
-    void _AutoCalcTotalDowntime(Building *bldg);
+    void _AutoCalcTotalValueAndDowntime(Building *bldg);
     void _AutoGenComponents(Building *bldg);
     void _CalcBldgConseqScenario(Building *bldg);   //only one ground motion input
     void _CalcComponentDamage(Component *cpn,int currRealization, double edp);
