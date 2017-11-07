@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -e
-set -v
 
 # first argument is the output filename, the rest inputs
 OUTPUT=$1

@@ -9,10 +9,5 @@ chmod 755 createBIM
 
 ./createBIM $BID_LOW $BID_HIGH
 
-echo
-echo
-ls -l
-echo
-echo
 
 

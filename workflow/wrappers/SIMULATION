@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -e 
-set -v
 
 BID=$1
 
@@ -24,7 +23,7 @@ set +e
 RC=$?
 set -e
 
-cat $BID-SIMULATION.out
+tail -c 1000 $BID-SIMULATION.out
 
 if [ "$RC" != "0" ]; then
     if grep "HystereticMaterial::HystereticMaterial -- input backbone is not unique" $BID-SIMULATION.out >/dev/null 2>&1; then
@@ -33,6 +32,8 @@ if [ "$RC" != "0" ]; then
         RC=0
     fi
 fi
+
+rm -f $BID-SIMULATION.out
 
 # output is an updated $BID-EDP.json, which we need to copy to the final json
 cp $BID-EDP.json $BID-SIMULATION.json

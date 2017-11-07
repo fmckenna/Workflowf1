@@ -12,8 +12,8 @@
     </site>
 
     <site  handle="compute" arch="x86_64" os="LINUX">
-        <directory type="shared-scratch" path="/gpfs/flash/users/rynge/wf-scratch">
-            <file-server operation="all" url="file:///gpfs/flash/users/rynge/wf-scratch"/>
+        <directory type="shared-scratch" path="/local-scratch/rynge/wf-scratch">
+            <file-server operation="all" url="file:///local-scratch/rynge/wf-scratch"/>
         </directory>
         <profile namespace="pegasus" key="style" >condor</profile>
         <profile namespace="condor" key="universe" >vanilla</profile>
@@ -21,8 +21,8 @@
         <profile namespace="condor" key="request_memory" >1 GB</profile>
         <profile namespace="condor" key="request_disk" >500 MB</profile>
         <profile namespace="condor" key="+WantSimCenterTACC" >True</profile>
-        <profile namespace="condor" key="requirements" >regexp("tacc.utexas.edu", TARGET.FileSystemDomain)</profile>
-        <profile namespace="env" key="PEGASUS_HOME" >/gpfs/flash/users/rynge/software/pegasus-4.8.0</profile>
+        <profile namespace="condor" key="requirements" >Machine == "alicorn.isi.edu"</profile>
+        <profile namespace="env" key="PEGASUS_HOME" >/usr</profile>
     </site>
     
 </sitecatalog>

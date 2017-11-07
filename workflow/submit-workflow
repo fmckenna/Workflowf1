@@ -24,8 +24,7 @@ def add_executables(dax):
     # Add executables to the DAX-level replica catalog
     for exe_name in os.listdir("./wrappers/"):
         exe = Executable(name=exe_name, arch="x86_64", installed=False)
-        exe.addPFN(PFN("file://" + \
-                       top_dir + "/workflow/wrappers/" + exe_name, "local"))
+        exe.addPFN(local_pfn(top_dir + "/workflow/wrappers/" + exe_name))
     
         if exe_name == "BIM":
             # BIM requires some extra memory
@@ -37,9 +36,7 @@ def add_executables(dax):
             exe.addProfile(Profile(Namespace.CONDOR, 
                                    key="request_disk",
                                    value="30 GB"))
-            exe.addProfile(Profile(Namespace.CONDOR, 
-                                   key="rank",
-                                   value="regexp(\"isi.edu\", TARGET.FileSystemDomain)"))
+
         dax.addExecutable(exe)
 
 
@@ -77,11 +74,18 @@ def add_task_files(task_files, dax, job, lfn, base_dir, recursed=False):
                 task_files[task_name][lfn] = f
             else:
                 task_files[task_name][lfn] = File(lfn)
-                task_files[task_name][lfn].addPFN(PFN("file://" + \
-                        "/" + pfn, "local"))
+                task_files[task_name][lfn].addPFN(local_pfn(pfn))
                 #print(" ... registering input lfn/pfn: " + lfn + "  (" + pfn + ")")
                 dax.addFile(task_files[task_name][lfn])
 
+def local_pfn(path):
+    """ generates a full pfn given a local path """
+    pfn = None
+    if exec_site == "condorpool":
+        pfn = PFN("file://" + path, "local")
+    else:
+        pfn = PFN("scp://" + getpass.getuser() + "@" + socket.gethostname() + "/" + path, "local")
+    return pfn
 
 def get_building_count():
     """
@@ -141,7 +145,7 @@ def combine_json_outputs(dax, prefix, first_bid, outputs):
     start_num = first_bid
     
     exe = Executable(name="JSON-COMBINE", arch="x86_64", installed=False)
-    exe.addPFN(PFN("file://" +  top_dir + "/finalProcessing/readDLs", "local"))
+    exe.addPFN(local_pfn(top_dir + "/finalProcessing/readDLs"))
     dax.addExecutable(exe)
     
     for chunk in output_chunks:
@@ -160,7 +164,7 @@ def add_combine_job(dax, prefix, chunk, level, job_number, final):
     out_file = File("%s-combined-%d-%d" %(prefix, level, job_number))
     if final:
         out_file = File(prefix + "-combined")
-    j.uses(out_file, link=Link.OUTPUT, transfer=final, register=final)
+    j.uses(out_file, link=Link.OUTPUT, transfer=final, register=False)
     j.addArguments(out_file)
     for f in chunk:
         j.uses(f, link=Link.INPUT)
@@ -242,7 +246,7 @@ def generate_subwf(wfid, first_bid, last_bid):
             # label based clustering - these tasks are so short we want to
             # bundle a bunch of buildings together, but only 50 buildings
             # at the time
-            if count % 2000 == 0:
+            if count % 200 == 0:
                 count_label_event += 1
             if count % 100 == 0:
                 count_label += 1
@@ -255,6 +259,7 @@ def generate_subwf(wfid, first_bid, last_bid):
             # createEvent
         
             event = Job(name="EVENT")
+            event.addProfile(Profile("dagman", "CATEGORY", "event"))
             event.profile(namespace="pegasus", key="label", value=label_event)
             add_task_files(task_files, dax, event, "createEVENT", top_dir + "/createEVENT")
             add_task_files(task_files, dax, event, "HFmeta", top_dir + "/createEVENT")
@@ -348,8 +353,6 @@ def generate_subwf(wfid, first_bid, last_bid):
             dax.depends(parent=sam, child=simulation)
             dax.depends(parent=edp, child=simulation)
 
-            
-        
             ###################################################################
             # createDL
         
@@ -402,7 +405,10 @@ def generate_combine_wf(num_wfs):
 
     input_files = []
     for i in range(1, num_wfs + 1):
-        input_files.append(File("%06d-combined" %(i)))
+        f = File("%06d-subwf-result" %(i))
+        f.addPFN(local_pfn("%s/outputs/%06d-combined" %(run_dir, i)))
+        dax.addFile(f)
+        input_files.append(f)
 
     combine_outputs(dax, "final", input_files, 0)
 
@@ -446,13 +452,13 @@ os.environ['RUN_DIR'] = run_dir
 cmd = "envsubst <" + top_dir + "/workflow/sites/" + exec_site + "/sites.xml >" + run_dir + "/sites.xml"
 call(cmd, shell=True)
 
-cmd = "cp " + top_dir + "/workflow/pegasus.conf " + run_dir
+cmd = "cp " + top_dir + "/workflow/sites/" + exec_site + "/pegasus.conf " + run_dir
 call(cmd, shell=True)
-f = open(run_dir + "/pegasus.conf", "a")
-f.write("pegasus.catalog.replica.db.url=jdbc:sqlite:///" + run_dir + "/pegasus.sqlite")
-f.close()
-cmd = "pegasus-db-admin create sqlite:///" + run_dir + "/pegasus.sqlite"
-call(cmd, shell=True)
+#f = open(run_dir + "/pegasus.conf", "a")
+#f.write("pegasus.catalog.replica.db.url=jdbc:sqlite:///" + run_dir + "/pegasus.sqlite")
+#f.close()
+#cmd = "pegasus-db-admin create sqlite:///" + run_dir + "/pegasus.sqlite"
+#call(cmd, shell=True)
 
 buildings_total = get_building_count()
 buildings_per_subwf = 50000
@@ -489,13 +495,14 @@ for subwf_first_id in range(1, buildings_total + 1, buildings_per_subwf):
     dax.addFile(subwf_dax)
 
     job = DAX("%06d.xml" %(subwf_id))
+    job.addProfile(Profile("dagman", "CATEGORY", "subwf"))
     job.uses(subwf_dax)
     job.addArguments("-Dpegasus.catalog.site.file=%s/sites.xml" % (run_dir),
                      "--sites", "compute",
                      "--output-site", "local",
                      "--basename", "%06d" %(subwf_id),
                      "--cluster", "label",
-                     "--cleanup", "none",
+                     "--cleanup", "inplace",
                      "--force")
     dax.addDAX(job)
 
@@ -516,7 +523,7 @@ job.addArguments("-Dpegasus.catalog.site.file=%s/sites.xml" % (run_dir),
                  "--sites", "compute",
                  "--output-site", "local",
                  "--basename", "combine",
-                 "--cleanup", "none",
+                 "--cleanup", "inplace",
                  "--force")
 dax.addDAX(job)
 # all other sub workflows are parents

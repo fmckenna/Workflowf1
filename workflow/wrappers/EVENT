@@ -5,14 +5,13 @@ set -e
 BID=$1
 
 (
-    # Wait for lock on .untarlock (fd 200) for 15 minutes
-    flock -x -w 900 200
+    # Wait for lock on .untarlock (fd 200) for 60 minutes
+    flock -x -w 3600 200
 
     # only untar ones in clustered jobs
     if [ ! -e ".motions-untared-stamp" ]; then
         touch .motions-untared-stamp
         tar xzf motions.tar.gz
-        rm -f motions.tar.gz
     fi
 ) 200>.untarlock
 
