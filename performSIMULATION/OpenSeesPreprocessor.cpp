@@ -125,8 +125,11 @@ OpenSeesPreprocessor::processMaterials(ofstream &s){
       //$s1n $e1n $s2n $e2n <$s3n $e3n> $pinchX $pinchY $damage1 $damage2 <$beta>
       s << "uniaxialMaterial Hysteretic " << tag << " " << Sy << " " << Sy/K0
         << " " << alpha*Sy << " " << Sy/K0+(alpha-1)*Sy/eta/K0
+        << " " << alpha*Sy << " " << 1.0
         << " " << -beta*Sy << " " << -beta*Sy/K0 << " " << -beta*(alpha*Sy)
-        << " " << -(beta*Sy/K0 + beta*(alpha-1)*Sy/eta/K0) << " " << gamma
+        << " " << -(beta*Sy/K0 + beta*(alpha-1)*Sy/eta/K0)
+        << " " << -beta*(alpha*Sy) << " " << -1.0
+        << " " << gamma
         << " " << gamma << " " << 0.0 << " " << 0.0 << " " << a_k << "\n";
     }
   }
