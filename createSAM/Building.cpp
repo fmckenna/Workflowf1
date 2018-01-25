@@ -82,7 +82,7 @@ Building::readBIM(const char *event, const char *bim)
   json_t *aType = json_object_get(GI,"area");
   json_t *nType = json_object_get(GI,"numStory");
   json_t *hType = json_object_get(GI,"height");
-  json_t *yType = json_object_get(GI,"yBuilt");
+  json_t *yType = json_object_get(GI,"yearBuilt");
 
   const char *type = json_string_value(sType);
   string s(type);
