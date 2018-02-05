@@ -608,7 +608,7 @@ double HazusLossEstimator::_SimulateConseq(double q, double q_total,const Fragil
 
 
     //reducing standard deviation
-    for(int i=0;i<q;i++){
+    for(int i=0;i<(int)q;i++){
         if(curve->curve_type==FragilityCurve::lognormal)
             conseq+=exp(stat->gaussrand(log(median),dispersion));
         else	//normal distribution

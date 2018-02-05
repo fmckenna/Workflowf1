@@ -110,7 +110,7 @@ OpenSeesPostprocessor::processEDPs(){
 	  if (abs2Value > abs1Value)
 	    abs1Value = abs2Value;
 
-	  json_object_set(response,"scalar_data",json_real(abs2Value));
+	  json_object_set(response,"scalar_data",json_real(abs1Value));
 
 	} else if (strcmp(type,"max_drift") == 0) {
 
